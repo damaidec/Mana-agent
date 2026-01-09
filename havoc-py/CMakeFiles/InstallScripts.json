@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/kali/mdev/agent/3/havoc-py/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
