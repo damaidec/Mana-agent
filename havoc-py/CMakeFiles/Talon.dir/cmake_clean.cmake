@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "/home/kali/mdev/agent/3/Bin/Talon"
-  "/home/kali/mdev/agent/3/Bin/Talon.pdb"
+  "/home/kali/mdev/agent/Mana-agent/Bin/Talon"
+  "/home/kali/mdev/agent/Mana-agent/Bin/Talon.pdb"
   "CMakeFiles/Talon.dir/link.d"
   "CMakeFiles/Talon.dir/Source/Command.c.o"
   "CMakeFiles/Talon.dir/Source/Command.c.o.d"

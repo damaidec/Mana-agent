@@ -1,4 +1,5 @@
 #include <Mana.h>
+#include <Config.h>
 
 #include <Core.h>
 #include <Transport.h>
@@ -17,7 +18,7 @@ INT WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
                 CommandDispatcher();
         }
         
-        Sleep( 3 * 1000 );
+        Sleep( Instance.Config.Sleeping );
 
     } while ( TRUE );
 }

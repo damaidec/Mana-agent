@@ -22,12 +22,21 @@ Service {
 # Features
 - Dynamically creates a Config.h for Mana.exe upon payload generation. This reads a hardcoded value path for havoc C2 profile.
 
+## Supported Listener
+
+- HTTP
+- HTTPs
+
 ## Commands
 
-- shell - Executes cmd commands
-- upload - Upload files
-- download - Download files
-- exit - Terminate process
+- shell - Executes cmd commands.                        (Usage: shell /whoami)
+- upload - Upload files.                                (Usage:  upload /home/kali/test.txt flag.txt)
+- download - Download files.                            (Usage: download flag.txt. This get stored in the loot file of havoc)
+- exit - Terminate process.                             (Usage: exit)
+- whoami - Get current username and its privilege.      (Usage: whoami)
+- ls - list directory files.                            (Usage: ls or ls ../ or ls ../Desktop)
+- cd - change directory.                                (Usage: cd ../ or cd <fullpath>)
+- pwd - print current working directory.                (Usage: pwd)
 
 # Todo
 

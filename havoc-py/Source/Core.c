@@ -12,6 +12,8 @@ VOID ManaInit()
     }
     printf(CONFIG_HEADERS);
 
+    
+
     // Init Connection info
     Instance.Config.Transport.UserAgent = CONFIG_USER_AGENT;
     Instance.Config.Transport.Uri      = CONFIG_ENDPOINT;

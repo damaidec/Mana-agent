@@ -15,6 +15,13 @@
 
 #define COMMAND_OUTPUT           0x200
 
+#define COMMAND_PWD              0x400
+#define COMMAND_CD               0x401
+#define COMMAND_LS               0x402
+
+//Situational awareness
+#define COMMAND_WHOAMI           0x300
+
 typedef struct
 {
     INT ID;
@@ -29,4 +36,9 @@ VOID CommandUpload( PPARSER Parser );
 VOID CommandDownload( PPARSER Parser );
 VOID CommandExit( PPARSER Parser );
 
+//Situational awareness
+VOID CommandWhoami( PPARSER Parser );
+VOID CommandPwd( PPARSER Parser );
+VOID CommandCd( PPARSER Parser );
+VOID CommandLs( PPARSER Parser );
 #endif

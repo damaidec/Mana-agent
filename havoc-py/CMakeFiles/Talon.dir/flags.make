@@ -4,7 +4,7 @@
 # compile C with x86_64-w64-mingw32-gcc
 C_DEFINES = 
 
-C_INCLUDES = -I/home/kali/mdev/agent/3/havoc-py/Include
+C_INCLUDES = -I/home/kali/mdev/agent/Mana-agent/havoc-py/Include
 
 C_FLAGS = -std=gnu99 -s
 

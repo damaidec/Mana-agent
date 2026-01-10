@@ -57,10 +57,10 @@ RM = /home/kali/.local/lib/python3.13/site-packages/cmake/data/bin/cmake -E rm -
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/kali/mdev/agent/3/havoc-py
+CMAKE_SOURCE_DIR = /home/kali/mdev/agent/Mana-agent/havoc-py
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/kali/mdev/agent/3/havoc-py
+CMAKE_BINARY_DIR = /home/kali/mdev/agent/Mana-agent/havoc-py
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/kali/mdev/agent/3/havoc-py/CMakeFiles /home/kali/mdev/agent/3/havoc-py//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles /home/kali/mdev/agent/Mana-agent/havoc-py//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/kali/mdev/agent/3/havoc-py/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
