@@ -2,6 +2,11 @@
 
 Mana agent is a custom agent for havoc built around Talon agent as basis. When I got free time, I will be adding more capabilities on this agent. 
 
+My blog for making custom havoc agent
+https://www.zakodachi.dev/Command-and-control/custom-havoc-agent.html
+
+https://www.zakodachi.dev/Command-and-control/Extending-mana-agent.html
+
 # Setup
 
 Follow the installation guide on havoc-py
@@ -9,7 +14,9 @@ https://github.com/HavocFramework/havoc-py
 
 Open the havoc-py/agent.py and edit the PROFILE_PATH add your full c2 profile.
 
-Ensure that on your havoc c2 profile you have a service block configure. Note it should match the endpoint and password for agent.py
+Ensure that on your havoc c2 profile you have a service block configure. Note it should match the endpoint and password for agent.py. After editing it run python agent.py it should register on havoc c2.
+
+Sample havoc c2 profile with Service block
 
 ```
 Service {
@@ -18,6 +25,7 @@ Service {
 }
 
 ```
+
 
 # Features
 - Dynamically creates a Config.h for Mana.exe upon payload generation. This reads a hardcoded value path for havoc C2 profile.
@@ -43,7 +51,7 @@ Service {
 - Test AES http/s communication
 - Add more commands prefferably for situational awareness
 - String hashing
-- Process injections
+- Process injection
 - some evasion stuffs
 - Add different output format
 
