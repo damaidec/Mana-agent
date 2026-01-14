@@ -5,7 +5,7 @@
 #define CONFIG_HOST         L"192.168.56.101"
 #define CONFIG_PORT         80
 #define CONFIG_SECURE       FALSE
-#define CONFIG_ENDPOINT     L"/pki/mscorp/cps/deffault.htm"
+#define CONFIG_ENDPOINT     L"/pki/mscorp/crl/msitwww1.crl"
 #define CONFIG_USER_AGENT    L"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36"
 
 // =============================================================================

@@ -12,7 +12,9 @@ https://www.zakodachi.dev/Command-and-control/Extending-mana-agent.html
 Follow the installation guide on havoc-py
 https://github.com/HavocFramework/havoc-py
 
-Open the havoc-py/agent.py and edit the PROFILE_PATH add your full c2 profile.
+Download donut on https://github.com/TheWover/donut
+
+Open the havoc-py/agent.py, edit the PROFILE_PATH add your full c2 profile, edit DONUT_PATH and add the full path to donut executable
 
 Ensure that on your havoc c2 profile you have a service block configure. Note it should match the endpoint and password for agent.py. After editing it run python agent.py it should register on havoc c2.
 
@@ -27,6 +29,8 @@ Service {
 ```
 
 
+
+
 # Features
 - Dynamically creates a Config.h for Mana.exe upon payload generation. This reads a hardcoded value path for havoc C2 profile.
 
@@ -34,6 +38,8 @@ Service {
 
 - HTTP
 - HTTPs
+
+## Supported Output format
 
 ## Commands
 
@@ -52,7 +58,6 @@ Service {
 - Test AES http/s communication
 - Add more commands prefferably for situational awareness
 - String hashing
-- Process injection
 - some evasion stuffs
 - Add different output format
 

