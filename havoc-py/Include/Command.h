@@ -22,6 +22,10 @@
 //Situational awareness
 #define COMMAND_WHOAMI           0x300
 
+
+//Process injection
+#define COMMAND_EBAPC            0x600
+
 typedef struct
 {
     INT ID;
@@ -41,4 +45,5 @@ VOID CommandWhoami( PPARSER Parser );
 VOID CommandPwd( PPARSER Parser );
 VOID CommandCd( PPARSER Parser );
 VOID CommandLs( PPARSER Parser );
+VOID CommandEbapc( PPARSER Parser );
 #endif

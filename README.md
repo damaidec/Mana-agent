@@ -45,6 +45,7 @@ Service {
 - ls - list directory files.                            (Usage: ls or ls ../ or ls ../Desktop)
 - cd - change directory.                                (Usage: cd ../ or cd <fullpath>)
 - pwd - print current working directory.                (Usage: pwd)
+- ebapc - Use early bird process injection              (Usage: ebapc <process_path> <shellcode_file>) Note. You must convert Mana.exe first to shell code.
 
 # Todo
 
