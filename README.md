@@ -16,7 +16,7 @@ Download donut on https://github.com/TheWover/donut
 
 Open the havoc-py/agent.py, edit the PROFILE_PATH add your full c2 profile, edit DONUT_PATH and add the full path to donut executable
 
-Ensure that on your havoc c2 profile you have a service block configure. Note it should match the endpoint and password for agent.py. After editing it run python agent.py it should register on havoc c2.
+Ensure that on your havoc c2 profilea you have a service block configure. Note it should match the endpoint and password for agent.py. After editing it run python agent.py it should register on havoc c2.
 
 Sample havoc c2 profile with Service block
 
@@ -41,6 +41,9 @@ Service {
 
 ## Supported Output format
 
+- exe
+- shellcode (donut)
+
 ## Commands
 
 - shell - Executes cmd commands.                        (Usage: shell /whoami)
@@ -52,6 +55,7 @@ Service {
 - cd - change directory.                                (Usage: cd ../ or cd <fullpath>)
 - pwd - print current working directory.                (Usage: pwd)
 - ebapc - Use early bird process injection              (Usage: ebapc <process_path> <shellcode_file>) Note. You must convert Mana.exe first to shell code.
+- execute-assembly                                      (Usage: execute-assembly <assembly_file> [arguments] [runtime]). This performs early bird process injection to inject the .NET shellcode into a remote process. This utilizes donut to convert .NET application into a shellcode. Default process is set to msiexec.exe and fallback to cmd.exe, change the agent.py if you preffer other.
 
 # Todo
 
@@ -60,6 +64,7 @@ Service {
 - String hashing
 - some evasion stuffs
 - Add different output format
+- inline-execute-assembly
 
 
 # Other Agents for Havoc

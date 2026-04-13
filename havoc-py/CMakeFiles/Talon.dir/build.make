@@ -100,10 +100,24 @@ CMakeFiles/Talon.dir/Source/Core.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/Talon.dir/Source/Core.c.s"
 	x86_64-w64-mingw32-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/kali/mdev/agent/Mana-agent/havoc-py/Source/Core.c -o CMakeFiles/Talon.dir/Source/Core.c.s
 
+CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o: CMakeFiles/Talon.dir/flags.make
+CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o: Source/InlineExecuteAssembly.c
+CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o: CMakeFiles/Talon.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o"
+	x86_64-w64-mingw32-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o -MF CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o.d -o CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o -c /home/kali/mdev/agent/Mana-agent/havoc-py/Source/InlineExecuteAssembly.c
+
+CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.i"
+	x86_64-w64-mingw32-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/kali/mdev/agent/Mana-agent/havoc-py/Source/InlineExecuteAssembly.c > CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.i
+
+CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.s"
+	x86_64-w64-mingw32-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/kali/mdev/agent/Mana-agent/havoc-py/Source/InlineExecuteAssembly.c -o CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.s
+
 CMakeFiles/Talon.dir/Source/Main.c.o: CMakeFiles/Talon.dir/flags.make
 CMakeFiles/Talon.dir/Source/Main.c.o: Source/Main.c
 CMakeFiles/Talon.dir/Source/Main.c.o: CMakeFiles/Talon.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object CMakeFiles/Talon.dir/Source/Main.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object CMakeFiles/Talon.dir/Source/Main.c.o"
 	x86_64-w64-mingw32-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/Talon.dir/Source/Main.c.o -MF CMakeFiles/Talon.dir/Source/Main.c.o.d -o CMakeFiles/Talon.dir/Source/Main.c.o -c /home/kali/mdev/agent/Mana-agent/havoc-py/Source/Main.c
 
 CMakeFiles/Talon.dir/Source/Main.c.i: cmake_force
@@ -117,7 +131,7 @@ CMakeFiles/Talon.dir/Source/Main.c.s: cmake_force
 CMakeFiles/Talon.dir/Source/Package.c.o: CMakeFiles/Talon.dir/flags.make
 CMakeFiles/Talon.dir/Source/Package.c.o: Source/Package.c
 CMakeFiles/Talon.dir/Source/Package.c.o: CMakeFiles/Talon.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object CMakeFiles/Talon.dir/Source/Package.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building C object CMakeFiles/Talon.dir/Source/Package.c.o"
 	x86_64-w64-mingw32-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/Talon.dir/Source/Package.c.o -MF CMakeFiles/Talon.dir/Source/Package.c.o.d -o CMakeFiles/Talon.dir/Source/Package.c.o -c /home/kali/mdev/agent/Mana-agent/havoc-py/Source/Package.c
 
 CMakeFiles/Talon.dir/Source/Package.c.i: cmake_force
@@ -131,7 +145,7 @@ CMakeFiles/Talon.dir/Source/Package.c.s: cmake_force
 CMakeFiles/Talon.dir/Source/Parser.c.o: CMakeFiles/Talon.dir/flags.make
 CMakeFiles/Talon.dir/Source/Parser.c.o: Source/Parser.c
 CMakeFiles/Talon.dir/Source/Parser.c.o: CMakeFiles/Talon.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building C object CMakeFiles/Talon.dir/Source/Parser.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object CMakeFiles/Talon.dir/Source/Parser.c.o"
 	x86_64-w64-mingw32-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/Talon.dir/Source/Parser.c.o -MF CMakeFiles/Talon.dir/Source/Parser.c.o.d -o CMakeFiles/Talon.dir/Source/Parser.c.o -c /home/kali/mdev/agent/Mana-agent/havoc-py/Source/Parser.c
 
 CMakeFiles/Talon.dir/Source/Parser.c.i: cmake_force
@@ -145,7 +159,7 @@ CMakeFiles/Talon.dir/Source/Parser.c.s: cmake_force
 CMakeFiles/Talon.dir/Source/Transport.c.o: CMakeFiles/Talon.dir/flags.make
 CMakeFiles/Talon.dir/Source/Transport.c.o: Source/Transport.c
 CMakeFiles/Talon.dir/Source/Transport.c.o: CMakeFiles/Talon.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object CMakeFiles/Talon.dir/Source/Transport.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object CMakeFiles/Talon.dir/Source/Transport.c.o"
 	x86_64-w64-mingw32-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/Talon.dir/Source/Transport.c.o -MF CMakeFiles/Talon.dir/Source/Transport.c.o.d -o CMakeFiles/Talon.dir/Source/Transport.c.o -c /home/kali/mdev/agent/Mana-agent/havoc-py/Source/Transport.c
 
 CMakeFiles/Talon.dir/Source/Transport.c.i: cmake_force
@@ -160,6 +174,7 @@ CMakeFiles/Talon.dir/Source/Transport.c.s: cmake_force
 Talon_OBJECTS = \
 "CMakeFiles/Talon.dir/Source/Command.c.o" \
 "CMakeFiles/Talon.dir/Source/Core.c.o" \
+"CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o" \
 "CMakeFiles/Talon.dir/Source/Main.c.o" \
 "CMakeFiles/Talon.dir/Source/Package.c.o" \
 "CMakeFiles/Talon.dir/Source/Parser.c.o" \
@@ -170,6 +185,7 @@ Talon_EXTERNAL_OBJECTS =
 
 /home/kali/mdev/agent/Mana-agent/Bin/Talon: CMakeFiles/Talon.dir/Source/Command.c.o
 /home/kali/mdev/agent/Mana-agent/Bin/Talon: CMakeFiles/Talon.dir/Source/Core.c.o
+/home/kali/mdev/agent/Mana-agent/Bin/Talon: CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o
 /home/kali/mdev/agent/Mana-agent/Bin/Talon: CMakeFiles/Talon.dir/Source/Main.c.o
 /home/kali/mdev/agent/Mana-agent/Bin/Talon: CMakeFiles/Talon.dir/Source/Package.c.o
 /home/kali/mdev/agent/Mana-agent/Bin/Talon: CMakeFiles/Talon.dir/Source/Parser.c.o
@@ -177,7 +193,7 @@ Talon_EXTERNAL_OBJECTS =
 /home/kali/mdev/agent/Mana-agent/Bin/Talon: CMakeFiles/Talon.dir/build.make
 /home/kali/mdev/agent/Mana-agent/Bin/Talon: CMakeFiles/Talon.dir/compiler_depend.ts
 /home/kali/mdev/agent/Mana-agent/Bin/Talon: CMakeFiles/Talon.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking C executable /home/kali/mdev/agent/Mana-agent/Bin/Talon"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/kali/mdev/agent/Mana-agent/havoc-py/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking C executable /home/kali/mdev/agent/Mana-agent/Bin/Talon"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Talon.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

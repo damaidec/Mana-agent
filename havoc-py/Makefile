@@ -177,6 +177,30 @@ Source/Core.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Talon.dir/build.make CMakeFiles/Talon.dir/Source/Core.c.s
 .PHONY : Source/Core.c.s
 
+Source/InlineExecuteAssembly.o: Source/InlineExecuteAssembly.c.o
+.PHONY : Source/InlineExecuteAssembly.o
+
+# target to build an object file
+Source/InlineExecuteAssembly.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Talon.dir/build.make CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o
+.PHONY : Source/InlineExecuteAssembly.c.o
+
+Source/InlineExecuteAssembly.i: Source/InlineExecuteAssembly.c.i
+.PHONY : Source/InlineExecuteAssembly.i
+
+# target to preprocess a source file
+Source/InlineExecuteAssembly.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Talon.dir/build.make CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.i
+.PHONY : Source/InlineExecuteAssembly.c.i
+
+Source/InlineExecuteAssembly.s: Source/InlineExecuteAssembly.c.s
+.PHONY : Source/InlineExecuteAssembly.s
+
+# target to generate assembly for a file
+Source/InlineExecuteAssembly.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Talon.dir/build.make CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.s
+.PHONY : Source/InlineExecuteAssembly.c.s
+
 Source/Main.o: Source/Main.c.o
 .PHONY : Source/Main.o
 
@@ -288,6 +312,9 @@ help:
 	@echo "... Source/Core.o"
 	@echo "... Source/Core.i"
 	@echo "... Source/Core.s"
+	@echo "... Source/InlineExecuteAssembly.o"
+	@echo "... Source/InlineExecuteAssembly.i"
+	@echo "... Source/InlineExecuteAssembly.s"
 	@echo "... Source/Main.o"
 	@echo "... Source/Main.i"
 	@echo "... Source/Main.s"

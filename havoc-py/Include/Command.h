@@ -26,6 +26,8 @@
 //Process injection
 #define COMMAND_EBAPC            0x600
 
+#define COMMAND_EXECUTE_ASSEMBLY 0x160
+
 typedef struct
 {
     INT ID;
@@ -46,4 +48,5 @@ VOID CommandPwd( PPARSER Parser );
 VOID CommandCd( PPARSER Parser );
 VOID CommandLs( PPARSER Parser );
 VOID CommandEbapc( PPARSER Parser );
+VOID CommandExecuteAssembly( PPARSER Parser );
 #endif

@@ -6,6 +6,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/Talon.dir/Source/Command.c.o.d"
   "CMakeFiles/Talon.dir/Source/Core.c.o"
   "CMakeFiles/Talon.dir/Source/Core.c.o.d"
+  "CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o"
+  "CMakeFiles/Talon.dir/Source/InlineExecuteAssembly.c.o.d"
   "CMakeFiles/Talon.dir/Source/Main.c.o"
   "CMakeFiles/Talon.dir/Source/Main.c.o.d"
   "CMakeFiles/Talon.dir/Source/Package.c.o"
