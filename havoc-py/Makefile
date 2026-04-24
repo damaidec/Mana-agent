@@ -129,6 +129,30 @@ Talon/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Talon.dir/build.make CMakeFiles/Talon.dir/build
 .PHONY : Talon/fast
 
+Source/Apihashing.o: Source/Apihashing.c.o
+.PHONY : Source/Apihashing.o
+
+# target to build an object file
+Source/Apihashing.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Talon.dir/build.make CMakeFiles/Talon.dir/Source/Apihashing.c.o
+.PHONY : Source/Apihashing.c.o
+
+Source/Apihashing.i: Source/Apihashing.c.i
+.PHONY : Source/Apihashing.i
+
+# target to preprocess a source file
+Source/Apihashing.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Talon.dir/build.make CMakeFiles/Talon.dir/Source/Apihashing.c.i
+.PHONY : Source/Apihashing.c.i
+
+Source/Apihashing.s: Source/Apihashing.c.s
+.PHONY : Source/Apihashing.s
+
+# target to generate assembly for a file
+Source/Apihashing.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Talon.dir/build.make CMakeFiles/Talon.dir/Source/Apihashing.c.s
+.PHONY : Source/Apihashing.c.s
+
 Source/Command.o: Source/Command.c.o
 .PHONY : Source/Command.o
 
@@ -306,6 +330,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... Talon"
+	@echo "... Source/Apihashing.o"
+	@echo "... Source/Apihashing.i"
+	@echo "... Source/Apihashing.s"
 	@echo "... Source/Command.o"
 	@echo "... Source/Command.i"
 	@echo "... Source/Command.s"

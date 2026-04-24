@@ -2,6 +2,8 @@ file(REMOVE_RECURSE
   "/home/kali/mdev/agent/Mana-agent/Bin/Talon"
   "/home/kali/mdev/agent/Mana-agent/Bin/Talon.pdb"
   "CMakeFiles/Talon.dir/link.d"
+  "CMakeFiles/Talon.dir/Source/Apihashing.c.o"
+  "CMakeFiles/Talon.dir/Source/Apihashing.c.o.d"
   "CMakeFiles/Talon.dir/Source/Command.c.o"
   "CMakeFiles/Talon.dir/Source/Command.c.o.d"
   "CMakeFiles/Talon.dir/Source/Core.c.o"

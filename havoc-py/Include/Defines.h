@@ -1,0 +1,77 @@
+#ifndef DEFINES_H
+#define DEFINES_H
+
+#define APIhashval 6505
+
+#define H_FUNC_GETTOKENINFORMATION                       0x6c3d1f10
+#define H_FUNC_GETUSERNAMEA                              0x79e738aa
+#define H_FUNC_LOOKUPPRIVILEGEDISPLAYNAMEA               0xe5c67c22
+#define H_FUNC_LOOKUPPRIVILEGENAMEA                      0x6136644c
+#define H_FUNC_OPENPROCESSTOKEN                          0x9e99b35b
+#define H_FUNC_GETADAPTERSINFO                           0xd1252a29
+#define H_FUNC_CLOSEHANDLE                               0xea3f26cb
+#define H_FUNC_CREATEFILEA                               0x55031ede
+#define H_FUNC_CREATEPIPE                                0x21a0bb4b
+#define H_FUNC_CREATEPROCESSA                            0xe14d741d
+#define H_FUNC_DELETECRITICALSECTION                     0x6126c41c
+#define H_FUNC_ENTERCRITICALSECTION                      0xd978b787
+#define H_FUNC_EXITPROCESS                               0xbdda1462
+#define H_FUNC_FILETIMETOLOCALFILETIME                   0xe2918bb5
+#define H_FUNC_FILETIMETOSYSTEMTIME                      0x57005b0f
+#define H_FUNC_FINDCLOSE                                 0x01131920
+#define H_FUNC_FINDFIRSTFILEA                            0xdc1914f3
+#define H_FUNC_FINDNEXTFILEA                             0x5c236a0a
+#define H_FUNC_GETCOMPUTERNAMEXA                         0x6b5b51b7
+#define H_FUNC_GETCURRENTDIRECTORYA                      0x1a508842
+#define H_FUNC_GETCURRENTPROCESS                         0x9830384b
+#define H_FUNC_GETCURRENTPROCESSID                       0x651f80b8
+#define H_FUNC_GETFILESIZE                               0x68073604
+#define H_FUNC_GETFULLPATHNAMEA                          0x6b4670eb
+#define H_FUNC_GETLASTERROR                              0xfea67827
+#define H_FUNC_GETMODULEFILENAMEA                        0x9f4a5d11
+#define H_FUNC_GETMODULEHANDLEA                          0x9dad2e3c
+#define H_FUNC_GETPROCADDRESS                            0xc46da523
+#define H_FUNC_GETSTARTUPINFOA                           0x4b4d13c9
+#define H_FUNC_GETTICKCOUNT                              0x1fd0a3fd
+#define H_FUNC_INITIALIZECRITICALSECTION                 0xa1e8c5db
+#define H_FUNC_ISDBCSLEADBYTEEX                          0xd65b1d08
+#define H_FUNC_LEAVECRITICALSECTION                      0xacfdf116
+#define H_FUNC_LOCALALLOC                                0xfd130cbf
+#define H_FUNC_LOCALFREE                                 0xf0684376
+#define H_FUNC_LOCALREALLOC                              0x998aa2f6
+#define H_FUNC_MULTIBYTETOWIDECHAR                       0xffd096b2
+#define H_FUNC_PEEKNAMEDPIPE                             0xfb2e3541
+#define H_FUNC_QUEUEUSERAPC                              0x625b4641
+#define H_FUNC_READFILE                                  0xf73178c5
+#define H_FUNC_RESUMETHREAD                              0x0b0d9b92
+#define H_FUNC_SETCURRENTDIRECTORYA                      0xac26b4ce
+#define H_FUNC_SETHANDLEINFORMATION                      0x8891c647
+#define H_FUNC_SETUNHANDLEDEXCEPTIONFILTER               0x17620d5d
+#define H_FUNC_SLEEP                                     0x4bee3062
+#define H_FUNC_TERMINATEPROCESS                          0xb865c611
+#define H_FUNC_TLSGETVALUE                               0xa1b5e5f9
+#define H_FUNC_VIRTUALALLOCEX                            0x3d13a0b8
+#define H_FUNC_VIRTUALPROTECT                            0xcdf53371
+#define H_FUNC_VIRTUALPROTECTEX                          0x200fdcee
+#define H_FUNC_VIRTUALQUERY                              0x87e7d6e6
+#define H_FUNC_WAITFORSINGLEOBJECT                       0x69f955be
+#define H_FUNC_WIDECHARTOMULTIBYTE                       0x35ae79f2
+#define H_FUNC_WRITEFILE                                 0xb0373cb4
+#define H_FUNC_WRITEPROCESSMEMORY                        0x367c004c
+#define H_FUNC_WINHTTPADDREQUESTHEADERS                  0x3d8d2145
+#define H_FUNC_WINHTTPCLOSEHANDLE                        0x261e5479
+#define H_FUNC_WINHTTPCONNECT                            0x677eab81
+#define H_FUNC_WINHTTPOPEN                               0x4dc4aac9
+#define H_FUNC_WINHTTPOPENREQUEST                        0x2f568572
+#define H_FUNC_WINHTTPREADDATA                           0x0e609b6d
+#define H_FUNC_WINHTTPRECEIVERESPONSE                    0xb9a22249
+#define H_FUNC_WINHTTPSENDREQUEST                        0xf622c64a
+#define H_FUNC_WINHTTPSETOPTION                          0x200f1fdc
+
+#define H_MODULE_ADVAPI32                                0xba19c5ca
+#define H_MODULE_IPHLPAPI                                0x351211d2
+#define H_MODULE_KERNEL32                                0xd3d024d4
+#define H_MODULE_NTDLL                                   0xfbf1e8b7
+#define H_MODULE_WINHTTP                                 0x789d3ae0
+
+#endif // DEFINES_H

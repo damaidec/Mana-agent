@@ -14,6 +14,11 @@ https://github.com/HavocFramework/havoc-py
 
 Download donut on https://github.com/TheWover/donut
 
+```
+sudo apt-get install binutils-mingw-w64
+sudo apt-get install osslsigncode
+```
+
 Open the havoc-py/agent.py, edit the PROFILE_PATH add your full c2 profile, edit DONUT_PATH and add the full path to donut executable
 
 Ensure that on your havoc c2 profilea you have a service block configure. Note it should match the endpoint and password for agent.py. After editing it run python agent.py it should register on havoc c2.
@@ -33,6 +38,10 @@ Service {
 
 # Features
 - Dynamically creates a Config.h for Mana.exe upon payload generation. This reads a hardcoded value path for havoc C2 profile.
+- During each payload compilation, a Defines.h file for API hashing is generated, which uses a different hash seed every time it's compiling a payload. Note need to update this into other implementation. 
+- Resource section for modifying exe metadata. Icon file not yet supported
+- Code signing with self signed certificate. This function needs internet because it needs to connect to hxxp://timestamp.digicert.com for
+Authenticode timestamping. This uses osslsigncode for code signing and openssl for generating the cert
 
 ## Supported Listener
 
@@ -55,13 +64,13 @@ Service {
 - cd - change directory.                                (Usage: cd ../ or cd <fullpath>)
 - pwd - print current working directory.                (Usage: pwd)
 - ebapc - Use early bird process injection              (Usage: ebapc <process_path> <shellcode_file>) Note. You must convert Mana.exe first to shell code.
-- execute-assembly                                      (Usage: execute-assembly <assembly_file> [arguments] [runtime]). This performs early bird process injection to inject the .NET shellcode into a remote process. This utilizes donut to convert .NET application into a shellcode. Default process is set to msiexec.exe and fallback to cmd.exe, change the agent.py if you preffer other.
+- execute-assembly                                      (Usage: execute-assembly <assembly_file> [arguments] [runtime]). This performs early bird process injection to inject the .NET shellcode into a remote process. This utilizes donut to convert .NET application into a shellcode. Default process is set to msiexec.exe and fallback to cmd.exe, change the agent.py if you preffer other. (This is detected by defender, will be implementing a custom one for executing it on the same process). The detection is highly likely comes from donut. 
 
 # Todo
 
 - Test AES http/s communication
 - Add more commands prefferably for situational awareness
-- String hashing
+- ~~API hashing~~
 - some evasion stuffs
 - Add different output format
 - inline-execute-assembly

