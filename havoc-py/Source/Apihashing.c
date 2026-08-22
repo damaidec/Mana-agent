@@ -1,6 +1,5 @@
 #include <windows.h>
 #include <stdio.h>
-#include <winternl.h>
 
 #include <Defines.h>
 #include <typedef.h>
@@ -67,24 +66,25 @@ SIZE_T StringLength(PBYTE String, BOOLEAN IsWide)
 
 PVOID LoadModulePeb(UINT_PTR hModuleHash)
 {
-    PLDR_DATA_TABLE_ENTRY Module = (PBYTE)((PPEB)PPEB_PTR)->Ldr->Reserved2[1];
-    PLDR_DATA_TABLE_ENTRY FirstModule = Module;
+    PMANA_PEB pPeb = (PMANA_PEB)PPEB_PTR;
+    PMANA_LDR_DATA_TABLE_ENTRY Module = (PMANA_LDR_DATA_TABLE_ENTRY)pPeb->pLdr->InMemoryOrderModuleList.Flink;
+    PMANA_LDR_DATA_TABLE_ENTRY FirstModule = Module;
 
     do
     {
         // Skip entries with no name
-        if (Module->Reserved5[0] == NULL)
+        if (Module->BaseDllName.pBuffer == NULL)
         {
-            Module = Module->Reserved1[0];
+            Module = (PMANA_LDR_DATA_TABLE_ENTRY)Module->InMemoryOrderModuleList.Flink;
             continue;
         }
 
-        DWORD ModuleHash = HashString(Module->Reserved5[0], TRUE);
+        DWORD ModuleHash = HashString(Module->BaseDllName.pBuffer, TRUE);
 
         if (ModuleHash == hModuleHash)
             return Module->DllBase;
 
-        Module = Module->Reserved1[0];
+        Module = (PMANA_LDR_DATA_TABLE_ENTRY)Module->InMemoryOrderModuleList.Flink;
     } while (Module && Module != FirstModule);
 
     return NULL;
@@ -102,7 +102,6 @@ PVOID LoadFunction(UINT_PTR Module, UINT_PTR FunctionHash)
     PWORD                   AddrOfOrdinals = NULL;
     PVOID                   FunctionAddr = NULL;
     PCHAR                   FunctionName = NULL;
-    ANSI_STRING             AnsiString = { 0 };
 
     NtHeader = Module + ((PIMAGE_DOS_HEADER)Module)->e_lfanew;
     ExpDirectory = Module + NtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;

@@ -2,8 +2,6 @@
 #define APIHASHING_H
 
 #include <windows.h>
-#include <winternl.h>
-
 #include <Defines.h>
 #include <typedef.h>
 

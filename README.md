@@ -17,6 +17,7 @@ Download donut on https://github.com/TheWover/donut
 ```
 sudo apt-get install binutils-mingw-w64
 sudo apt-get install osslsigncode
+sudo apt install nasm
 ```
 
 Open the havoc-py/agent.py, edit the PROFILE_PATH add your full c2 profile, edit DONUT_PATH and add the full path to donut executable
@@ -42,6 +43,7 @@ Service {
 - Resource section for modifying exe metadata. Icon file not yet supported
 - Code signing with self signed certificate. This function needs internet because it needs to connect to hxxp://timestamp.digicert.com for
 Authenticode timestamping. This uses osslsigncode for code signing and openssl for generating the cert
+- Indirect syscalls utilizing Recycledgate technique (Note some of the API function doesnt have macro yet for indirect syscall)
 
 ## Supported Listener
 
@@ -85,4 +87,4 @@ Authenticode timestamping. This uses osslsigncode for code signing and openssl f
 
 # Why I built one ?
 
-Well, I want to improve my understanding on C2 frameworks. I also need to create custom c2 agent for some of my upcoming exams (Most of them will need to evade EDR and I think creating a custom agent could help me around it since it's not signatured). Lastly probably to have a guide / documentation for building a custom agent for havoc c2 since there is not much blog/information I can find out there aside from https://codex-7.gitbook.io/codexs-terminal-window/red-team/red-team-dev/extending-havoc-c2/third-party-agents
+Well, I want to improve my understanding on C2 frameworks. I also need to create custom c2 agent for some of my upcoming exams (Most of them will need to evade EDR and I think creating a custom agent could help me around it since it's not signatured). Lastly probably to have a guide / documentation for building a custom agent for havoc c2 since there is not much blog/information I can find out there aside from https://codex-7.gitbook.io/codexs-terminal-window/red-team/red-team-dev/extending-havoc-c2/third-party-agents. I found another site for building an agent https://mintlify.wiki/HavocFramework/Havoc/extensibility/overview
