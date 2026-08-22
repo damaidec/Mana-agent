@@ -43,7 +43,7 @@ Service {
 - Resource section for modifying exe metadata. Icon file not yet supported
 - Code signing with self signed certificate. This function needs internet because it needs to connect to hxxp://timestamp.digicert.com for
 Authenticode timestamping. This uses osslsigncode for code signing and openssl for generating the cert
-- Indirect syscalls utilizing Recycledgate technique (Note some of the API function doesnt have macro yet for indirect syscall)
+- Indirect syscalls utilizing Recycledgate technique (Note some of the API function doesnt have macro yet for indirect syscall) https://github.com/thefLink/RecycledGate/tree/main
 
 ## Supported Listener
 
